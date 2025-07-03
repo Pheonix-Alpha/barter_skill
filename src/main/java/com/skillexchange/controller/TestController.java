@@ -1,5 +1,6 @@
 package com.skillexchange.controller;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,14 +13,13 @@ import com.skillexchange.repository.UserRepository;
 @RequestMapping("/api/test")
 public class TestController {
 
-    private final UserRepository userRepo;
-
-    public TestController(UserRepository userRepo){
-        this.userRepo = userRepo;
-
+     @GetMapping("/hello")
+    public String hello() {
+        return "🔓 Public: No token needed";
     }
-    @PostMapping("/add")
-    public User addUser(@RequestBody User user){
-        return userRepo.save(user);
+
+    @GetMapping("/secure-hello")
+    public String secureHello() {
+        return "🔐 Protected: You are authenticated!";
     }
 }
