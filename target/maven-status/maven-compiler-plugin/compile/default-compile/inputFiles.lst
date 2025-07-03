@@ -2,6 +2,7 @@ C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\Com
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\config\JwtAuthenticationFilter.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\config\SecurityConfig.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\controller\AuthController.java
+C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\controller\MatchmakingController.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\controller\SkillController.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\controller\SkillExchangeController.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\controller\TestController.java
@@ -25,6 +26,7 @@ C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\rep
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\AuthService.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\CustomUserDetailsService.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\JwtService.java
+C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\MatchmakingService.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\SkillExchangeService.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\SkillService.java
 C:\Users\yroha\OneDrive\Desktop\CODE\backend\src\main\java\com\skillexchange\service\UserSkillService.java

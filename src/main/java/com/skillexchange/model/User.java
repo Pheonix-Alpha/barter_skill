@@ -26,4 +26,12 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @Column(length = 500)
+private String bio;
+
+private Double averageRating = 0.0;
+private Integer totalRatings = 0;
+private Integer ratingSum = 0;
+
 }
