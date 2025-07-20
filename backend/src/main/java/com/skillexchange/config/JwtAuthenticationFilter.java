@@ -2,18 +2,21 @@ package com.skillexchange.config;
 
 import com.skillexchange.service.CustomUserDetailsService;
 import com.skillexchange.service.JwtService;
-import jakarta.servlet.*;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+
 @Component
-public class JwtAuthenticationFilter extends GenericFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
@@ -23,30 +26,44 @@ public class JwtAuthenticationFilter extends GenericFilter {
         this.userDetailsService = userDetailsService;
     }
 
-    @Override
-    public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
-            throws IOException, ServletException {
+  @Override
+protected void doFilterInternal(HttpServletRequest request,
+                                HttpServletResponse response,
+                                FilterChain filterChain) throws ServletException, IOException {
 
-        HttpServletRequest request = (HttpServletRequest) req;
-        String authHeader = request.getHeader("Authorization");
+    String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
-            String username = jwtService.extractUsername(jwt);
+     System.out.println("📥 Request URL: " + request.getRequestURI());
+    System.out.println("🔐 Authorization Header: " + authHeader);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                var userDetails = userDetailsService.loadUserByUsername(username);
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String jwt = authHeader.substring(7);
+        String username = jwtService.extractUsername(jwt);
+          System.out.println("🧠 Extracted Username: " + username);
 
-                if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                    var authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
+        // ✅ 🔽 Place debug logs here
+        System.out.println("Authorization Header: " + authHeader);
+        System.out.println("Extracted Username: " + username);
 
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                }
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            var userDetails = userDetailsService.loadUserByUsername(username);
+
+ System.out.println("✅ User from DB: " + userDetails.getUsername());
+            System.out.println("✅ Token Valid? " + jwtService.isTokenValid(jwt, userDetails));
+
+            if (jwtService.isTokenValid(jwt, userDetails)) {
+                var authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+                 System.out.println("✅ SecurityContext set with Authentication for " + username);
             }
         }
-
-        filterChain.doFilter(req, res);
     }
+
+    filterChain.doFilter(request, response);
+}
+
+
 }

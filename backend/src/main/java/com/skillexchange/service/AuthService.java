@@ -1,9 +1,12 @@
 package com.skillexchange.service;
+import org.springframework.security.core.Authentication;
+
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -67,13 +70,22 @@ this.authManager = new ProviderManager(authProvider);
 }
 
 
-    public JwtResponse login(LoginRequest req) {
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(
-                req.getUsername(), req.getPassword()));
+  public JwtResponse login(LoginRequest req) {
+    // 1. Authenticate the user
+    UsernamePasswordAuthenticationToken authToken =
+        new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword());
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(req.getUsername());
-        String token = jwtService.generateToken(userDetails.getUsername());
-        return new JwtResponse(token);
-    }
+    Authentication authentication = authManager.authenticate(authToken);
+
+    // ✅ 2. Set the authenticated user in the SecurityContext
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    // 3. Generate JWT from authenticated user
+    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    String token = jwtService.generateToken(userDetails.getUsername());
+
+    return new JwtResponse(token);
+}
+
     
 }

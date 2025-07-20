@@ -22,8 +22,8 @@ public class WebSocketChatController {
         this.chatRepo = chatRepo;
     }
 
-    @MessageMapping("/chat")           // client sends to /app/chat
-    @SendTo("/topic/messages")         // broadcast to all subscribers
+    @MessageMapping("/chat") // client sends to /app/chat
+    @SendTo("/topic/messages") // broadcast to all subscribers
     public ChatMessageDto send(ChatMessageDto messageDto) {
         // Lookup sender & receiver from DB
         User sender = userRepo.findByUsername(messageDto.getSender()).orElseThrow();

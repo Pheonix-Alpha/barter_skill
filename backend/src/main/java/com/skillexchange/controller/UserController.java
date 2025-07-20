@@ -18,7 +18,7 @@ public class UserController {
         this.userRepo = userRepo;
     }
 
-    @GetMapping("/all")
+    @GetMapping
     public List<User> getAllUsersExceptMe(Authentication auth) {
         String currentUsername = auth.getName();
         return userRepo.findAll()

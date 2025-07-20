@@ -2,23 +2,23 @@ package com.skillexchange.controller;
 
 import com.skillexchange.model.ChatMessage;
 import com.skillexchange.model.User;
-import com.skillexchange.repository.ChatMessageRepository;
+import com.skillexchange.payload.SendMessageRequest;
 import com.skillexchange.repository.UserRepository;
+import com.skillexchange.service.ChatMessageService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    private final ChatMessageRepository chatRepo;
+    private final ChatMessageService chatService;
     private final UserRepository userRepo;
 
-    public ChatController(ChatMessageRepository chatRepo, UserRepository userRepo) {
-        this.chatRepo = chatRepo;
+    public ChatController(ChatMessageService chatService, UserRepository userRepo) {
+        this.chatService = chatService;
         this.userRepo = userRepo;
     }
 
@@ -27,32 +27,27 @@ public class ChatController {
         return userRepo.findByUsername(username).orElseThrow();
     }
 
+    // ✅ Send a message using DTO
     @PostMapping("/send/{receiverId}")
-    public ChatMessage sendMessage(@PathVariable Long receiverId, @RequestBody String message) {
+    public ChatMessage sendMessage(@PathVariable Long receiverId, @RequestBody SendMessageRequest request) {
         User sender = getCurrentUser();
         User receiver = userRepo.findById(receiverId).orElseThrow();
-
-        ChatMessage chat = ChatMessage.builder()
-                .sender(sender)
-                .receiver(receiver)
-                .message(message)
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return chatRepo.save(chat);
+        return chatService.sendMessage(sender, receiver, request.getMessage());
     }
 
+    // ✅ Get paginated chat history
     @GetMapping("/with/{userId}")
-    public List<ChatMessage> getChatWithUser(@PathVariable Long userId) {
+    public List<ChatMessage> getChatWithUser(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "0") int offset
+    ) {
         User me = getCurrentUser();
         User other = userRepo.findById(userId).orElseThrow();
 
-        List<ChatMessage> sent = chatRepo.findBySenderAndReceiver(me, other);
-        List<ChatMessage> received = chatRepo.findBySenderAndReceiver(other, me);
+        // ✅ Correct placement of debug log
+        System.out.println("📨 Fetching chat for: " + me.getUsername() + " ↔️ " + other.getUsername());
 
-        sent.addAll(received);
-        sent.sort((a, b) -> a.getTimestamp().compareTo(b.getTimestamp())); // sort chronologically
-
-        return sent;
+        return chatService.getChatHistory(me, other, limit, offset);
     }
 }
