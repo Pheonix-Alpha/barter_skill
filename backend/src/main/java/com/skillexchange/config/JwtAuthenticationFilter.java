@@ -14,7 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -26,44 +25,62 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userDetailsService = userDetailsService;
     }
 
-  @Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain filterChain) throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
-    String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader("Authorization");
+        String requestURI = request.getRequestURI();
 
-     System.out.println("📥 Request URL: " + request.getRequestURI());
-    System.out.println("🔐 Authorization Header: " + authHeader);
+        System.out.println("\n📥 Incoming Request URL: " + requestURI);
+        System.out.println("🔐 Authorization Header: " + authHeader);
 
-    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("❌ No Bearer token found or invalid Authorization header.");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String jwt = authHeader.substring(7);
         String username = jwtService.extractUsername(jwt);
-          System.out.println("🧠 Extracted Username: " + username);
+        System.out.println("🧠 Extracted Username: " + username);
 
-        // ✅ 🔽 Place debug logs here
-        System.out.println("Authorization Header: " + authHeader);
-        System.out.println("Extracted Username: " + username);
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userDetails = userDetailsService.loadUserByUsername(username);
-
- System.out.println("✅ User from DB: " + userDetails.getUsername());
-            System.out.println("✅ Token Valid? " + jwtService.isTokenValid(jwt, userDetails));
-
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                 System.out.println("✅ SecurityContext set with Authentication for " + username);
-            }
+        if (username == null) {
+            System.out.println("❌ Failed to extract username from JWT.");
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            System.out.println("⚠️ Authentication already present in SecurityContext.");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        var userDetails = userDetailsService.loadUserByUsername(username);
+        System.out.println("✅ Loaded User from DB: " + userDetails.getUsername());
+
+        boolean isValid = jwtService.isTokenValid(jwt, userDetails);
+        System.out.println("🔍 JWT Token Valid? " + isValid);
+
+        if (!isValid) {
+            System.out.println("❌ JWT is invalid for user: " + username);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // ✅ Set authentication in SecurityContext
+        var authToken = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        System.out.println("✅ SecurityContext updated for user: " + username);
+
+        filterChain.doFilter(request, response);
     }
-
-    filterChain.doFilter(request, response);
-}
-
-
 }

@@ -23,13 +23,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(request -> {
-                var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                corsConfig.setAllowedOrigins(List.of("http://localhost:3000"));
-                corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                corsConfig.setAllowedHeaders(List.of("*"));
-                corsConfig.setAllowCredentials(true);
-                return corsConfig;
-            }))
+    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
+    corsConfig.setAllowedOrigins(List.of("http://localhost:3000")); // ✅ React frontend
+    corsConfig.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    corsConfig.setAllowedHeaders(List.of("Authorization", "Content-Type", "*")); // ✅ important
+    corsConfig.setAllowCredentials(true); // ✅ allow cookies/auth headers
+    return corsConfig;
+}))
+
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS) // ✅ ADD THIS
@@ -43,6 +44,7 @@ public class SecurityConfig {
     ).permitAll()
     .requestMatchers("/api/chat/**").authenticated()
     .requestMatchers("/api/users/**").authenticated()
+    .requestMatchers("/api/friends/**").authenticated() 
     .requestMatchers("/api/admin/**").hasRole("ADMIN")
     .anyRequest().authenticated()
 )

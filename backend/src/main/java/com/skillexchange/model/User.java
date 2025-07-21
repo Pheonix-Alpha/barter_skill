@@ -3,6 +3,10 @@ package com.skillexchange.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
 @Entity
 @Data
 @NoArgsConstructor
@@ -23,7 +27,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Role role = Role.LEARNER; // or Role.USER, as per your app's default
+    private Role role = Role.LEARNER;
 
     @Column(length = 500)
     private String bio;
@@ -39,4 +43,39 @@ public class User {
 
     @Builder.Default
     private boolean isActive = true;
+
+    // ✅ Friends - bidirectional
+    @ManyToMany
+    @JoinTable(
+        name = "user_friends",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "friend_id")
+    )
+    private Set<User> friends = new HashSet<>();
+
+    // ✅ Sent Requests - owns the relationship
+    @ManyToMany
+    @JoinTable(
+        name = "friend_requests",
+        joinColumns = @JoinColumn(name = "sender_id"),
+        inverseJoinColumns = @JoinColumn(name = "receiver_id")
+    )
+    private Set<User> sentRequests = new HashSet<>();
+
+    // ✅ Received Requests - inverse side
+    @ManyToMany(mappedBy = "sentRequests")
+    private Set<User> receivedRequests = new HashSet<>();
+
+    // ✅ equals & hashCode based on ID only
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User user)) return false;
+        return id != null && id.equals(user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }

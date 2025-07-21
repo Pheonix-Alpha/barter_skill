@@ -19,23 +19,24 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = repo;
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+   @Override
+public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        if (!user.isActive()) {
-            throw new DisabledException("User is blocked");
-        }
-
-        return new org.springframework.security.core.userdetails.User(
-            user.getUsername(),
-            user.getPassword(),
-            user.isActive(), // enabled
-            true,            // accountNonExpired
-            true,            // credentialsNonExpired
-            true,            // accountNonLocked
-            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
+    if (!user.isActive()) {
+        throw new DisabledException("User is blocked");
     }
+
+    // ✅ Debug logs
+    System.out.println("👤 Found User: " + user.getUsername());
+    System.out.println("🔐 Role: " + user.getRole());
+    System.out.println("✅ Final Authority: ROLE_" + user.getRole().name());
+
+    return new CustomUserDetails(
+        user,
+        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+    );
+}
+
 }

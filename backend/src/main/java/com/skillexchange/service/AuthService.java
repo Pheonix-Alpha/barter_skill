@@ -64,7 +64,7 @@ this.authManager = new ProviderManager(authProvider);
     userRepo.save(user);
 
     // Generate JWT token
-    String token = jwtService.generateToken(user.getUsername());
+    String token = jwtService.generateToken(user.getUsername(), user.getId());
 
     return new JwtResponse(token);
 }
@@ -81,8 +81,8 @@ this.authManager = new ProviderManager(authProvider);
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
     // 3. Generate JWT from authenticated user
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-    String token = jwtService.generateToken(userDetails.getUsername());
+   CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+String token = jwtService.generateToken(userDetails.getUsername(), userDetails.getId());
 
     return new JwtResponse(token);
 }
