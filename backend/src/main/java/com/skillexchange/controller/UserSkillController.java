@@ -1,6 +1,6 @@
 package com.skillexchange.controller;
 
-import com.skillexchange.dto.UserSkillRequest;
+import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.model.UserSkill;
 import com.skillexchange.service.UserSkillService;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +18,7 @@ public class UserSkillController {
     }
 
     @PostMapping("/add")
-    public UserSkill addUserSkill(@RequestBody UserSkillRequest request) {
+    public UserSkill addUserSkill(@RequestBody SkillRequestDto request) {
         return userSkillService.offerOrRequestSkill(request);
     }
 

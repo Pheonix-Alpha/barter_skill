@@ -5,21 +5,28 @@ import ProfilePanel from "@/components/ProfilePanel";
 import { usePathname } from "next/navigation";
 import "../globals.css";
 
-export const metadata = {
-  title: "Skill Exchange App",
-};
-
 export default function MainLayout({ children }) {
   const pathname = usePathname();
-  const showProfile = !pathname.startsWith("/messages");
+
+  const isMessagePage = pathname.startsWith("/messages");
+  const isFriendsPage = pathname.startsWith("/friends");
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6 bg-gray-100">
+      {/* Sidebar: shrink only on message page, not on friends */}
+      <Sidebar shrink={isMessagePage} />
+
+      {/* Main content */}
+      <main
+        className={`flex-1 overflow-y-auto bg-gray-100 ${
+          isMessagePage || isFriendsPage ? "p-0" : "p-6"
+        }`}
+      >
         {children}
       </main>
-      {showProfile && <ProfilePanel />}
+
+      {/* Right panel shown only when not on messages or friends */}
+      {!isMessagePage && !isFriendsPage && <ProfilePanel />}
     </div>
   );
 }

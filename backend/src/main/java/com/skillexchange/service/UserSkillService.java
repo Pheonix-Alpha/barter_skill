@@ -1,6 +1,7 @@
 package com.skillexchange.service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.skillexchange.dto.UserSkillRequest;
+import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.model.*;
 import com.skillexchange.repository.SkillRepository;
 import com.skillexchange.repository.UserRepository;
@@ -24,23 +25,35 @@ public class UserSkillService {
         this.userRepo = userRepo;
     }
 
-    public User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByUsername(username).orElseThrow();
+     @Transactional(readOnly = true)
+   public User getCurrentUser() {
+    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+    return userRepo.findWithRelationsByUsername(username)
+                   .orElseThrow(() -> new RuntimeException("User not found"));
+}
+
+
+   public UserSkill offerOrRequestSkill(SkillRequestDto req) {
+    Skill skill = skillRepo.findById(req.getSkillId())
+            .orElseThrow(() -> new RuntimeException("Skill not found"));
+    User user = getCurrentUser();
+
+    SkillType type;
+    try {
+        type = SkillType.valueOf(req.getType().toUpperCase());
+    } catch (IllegalArgumentException | NullPointerException e) {
+        throw new IllegalArgumentException("Invalid or missing skill type: " + req.getType());
     }
 
-    public UserSkill offerOrRequestSkill(UserSkillRequest req) {
-        Skill skill = skillRepo.findById(req.getSkillId()).orElseThrow();
-        User user = getCurrentUser();
+    UserSkill us = UserSkill.builder()
+            .user(user)
+            .skill(skill)
+            .type(type)
+            .build();
 
-        UserSkill us = UserSkill.builder()
-                .user(user)
-                .skill(skill)
-                .type(req.getType())
-                .build();
+    return userSkillRepo.save(us);
+}
 
-        return userSkillRepo.save(us);
-    }
 
     public List<UserSkill> getMySkills() {
         return userSkillRepo.findByUser(getCurrentUser());

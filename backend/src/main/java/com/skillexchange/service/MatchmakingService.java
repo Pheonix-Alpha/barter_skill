@@ -1,6 +1,8 @@
 package com.skillexchange.service;
 
-import com.skillexchange.model.*;
+import com.skillexchange.model.SkillType;
+import com.skillexchange.model.User;
+import com.skillexchange.model.UserSkill;
 import com.skillexchange.repository.UserRepository;
 import com.skillexchange.repository.UserSkillRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,12 +22,11 @@ public class MatchmakingService {
         this.userRepo = userRepo;
     }
 
-    private User getCurrentUser() {
+    public User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByUsername(username).orElseThrow();
+        return userRepo.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    // Find users offering a skill
     public List<User> findUsersOfferingSkill(Long skillId) {
         return userSkillRepo.findBySkillIdAndType(skillId, SkillType.OFFERED).stream()
                 .map(UserSkill::getUser)
@@ -33,7 +34,6 @@ public class MatchmakingService {
                 .collect(Collectors.toList());
     }
 
-    // Find users wanting a skill
     public List<User> findUsersWantingSkill(Long skillId) {
         return userSkillRepo.findBySkillIdAndType(skillId, SkillType.WANTED).stream()
                 .map(UserSkill::getUser)
@@ -41,15 +41,16 @@ public class MatchmakingService {
                 .collect(Collectors.toList());
     }
 
-    // Smart matchmaking: find users who want what I offer and offer what I want
     public List<User> findSkillMatches() {
         User me = getCurrentUser();
 
         List<Long> myOfferedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.OFFERED).stream()
-                .map(us -> us.getSkill().getId()).toList();
+                .map(us -> us.getSkill().getId())
+                .toList();
 
         List<Long> myWantedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.WANTED).stream()
-                .map(us -> us.getSkill().getId()).toList();
+                .map(us -> us.getSkill().getId())
+                .toList();
 
         Set<User> matches = new HashSet<>();
 
@@ -69,4 +70,21 @@ public class MatchmakingService {
 
         return new ArrayList<>(matches);
     }
+
+    // New: Find users offering a skill by skill name
+    public List<User> searchUsersOfferingSkill(String skillName) {
+        return userRepo.findBySkillNameAndType(skillName, SkillType.OFFERED);
+    }
+
+    // New: Find users wanting a skill by skill name
+    public List<User> searchUsersWantingSkill(String skillName) {
+        return userRepo.findBySkillNameAndType(skillName, SkillType.WANTED);
+    }
+    public List<User> searchUsersBySkill(String skillName) {
+    Set<User> combined = new HashSet<>();
+    combined.addAll(searchUsersOfferingSkill(skillName));
+    combined.addAll(searchUsersWantingSkill(skillName));
+    return new ArrayList<>(combined);
+}
+
 }

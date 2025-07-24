@@ -1,8 +1,7 @@
-// File: UserController.java
 package com.skillexchange.controller;
 
-import com.skillexchange.model.User;
-import com.skillexchange.repository.UserRepository;
+import com.skillexchange.dto.UserDTO;
+import com.skillexchange.service.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,18 +11,14 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserRepository userRepo;
+    private final UserService userService;
 
-    public UserController(UserRepository userRepo) {
-        this.userRepo = userRepo;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
     @GetMapping
-    public List<User> getAllUsersExceptMe(Authentication auth) {
-        String currentUsername = auth.getName();
-        return userRepo.findAll()
-                .stream()
-                .filter(user -> !user.getUsername().equals(currentUsername))
-                .toList();
+    public List<UserDTO> getAllUsersExceptMe(Authentication auth) {
+        return userService.getAllUsersExcept(auth.getName());
     }
 }

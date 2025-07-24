@@ -30,6 +30,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        System.out.println("🔎 JwtAuthenticationFilter triggered");
+
         String authHeader = request.getHeader("Authorization");
         String requestURI = request.getRequestURI();
 
@@ -43,11 +45,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String jwt = authHeader.substring(7);
-        String username = jwtService.extractUsername(jwt);
+        String username = null;
+
+        try {
+            username = jwtService.extractUsername(jwt);
+        } catch (Exception e) {
+            System.out.println("❌ Failed to extract username from JWT: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
         System.out.println("🧠 Extracted Username: " + username);
 
         if (username == null) {
-            System.out.println("❌ Failed to extract username from JWT.");
+            System.out.println("❌ Username is null after extraction.");
             filterChain.doFilter(request, response);
             return;
         }
@@ -66,11 +77,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (!isValid) {
             System.out.println("❌ JWT is invalid for user: " + username);
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        // ✅ Set authentication in SecurityContext
         var authToken = new UsernamePasswordAuthenticationToken(
                 userDetails,
                 null,

@@ -26,10 +26,10 @@ public class FriendRequestController {
     @Transactional
     public String sendRequest(@PathVariable Long receiverId, Authentication auth) {
         try {
-            User sender = userRepo.findByUsername(auth.getName())
+            User sender = userRepo.findWithRelationsByUsername(auth.getName())
                     .orElseThrow(() -> new RuntimeException("Sender not found: " + auth.getName()));
 
-            User receiver = userRepo.findById(receiverId)
+            User receiver = userRepo.findWithRelationsById(receiverId)
                     .orElseThrow(() -> new RuntimeException("Receiver not found: ID " + receiverId));
 
             System.out.println("Sender: " + sender.getId() + " | Receiver: " + receiver.getId());
@@ -64,10 +64,10 @@ public class FriendRequestController {
     @Transactional
     public String acceptRequest(@PathVariable Long senderId, Authentication auth) {
         try {
-            User receiver = userRepo.findByUsername(auth.getName())
+            User receiver = userRepo.findWithRelationsByUsername(auth.getName())
                     .orElseThrow(() -> new RuntimeException("Receiver not found: " + auth.getName()));
 
-            User sender = userRepo.findById(senderId)
+            User sender = userRepo.findWithRelationsById(senderId)
                     .orElseThrow(() -> new RuntimeException("Sender not found: ID " + senderId));
 
             if (!receiver.getReceivedRequests().contains(sender)) {
@@ -95,10 +95,10 @@ public class FriendRequestController {
     @Transactional
     public String rejectRequest(@PathVariable Long senderId, Authentication auth) {
         try {
-            User receiver = userRepo.findByUsername(auth.getName())
+            User receiver = userRepo.findWithRelationsByUsername(auth.getName())
                     .orElseThrow(() -> new RuntimeException("Receiver not found: " + auth.getName()));
 
-            User sender = userRepo.findById(senderId)
+            User sender = userRepo.findWithRelationsById(senderId)
                     .orElseThrow(() -> new RuntimeException("Sender not found: ID " + senderId));
 
             receiver.getReceivedRequests().remove(sender);
@@ -118,10 +118,12 @@ public class FriendRequestController {
     @GetMapping("/received")
     @Transactional
     public List<UserDTO> getReceivedRequests(Authentication auth) {
-        User me = userRepo.findByUsername(auth.getName()).orElseThrow();
+        User me = userRepo.findWithRelationsByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return me.getReceivedRequests()
                 .stream()
-                .map(UserDTO::new)
+                .map(user -> new UserDTO(user, me))
+
                 .collect(Collectors.toList());
     }
 
@@ -129,10 +131,12 @@ public class FriendRequestController {
     @GetMapping("/sent")
     @Transactional
     public List<UserDTO> getSentRequests(Authentication auth) {
-        User me = userRepo.findByUsername(auth.getName()).orElseThrow();
+        User me = userRepo.findWithRelationsByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return me.getSentRequests()
                 .stream()
-                .map(UserDTO::new)
+                .map(user -> new UserDTO(user, me))
+
                 .collect(Collectors.toList());
     }
 
@@ -140,10 +144,12 @@ public class FriendRequestController {
     @GetMapping("/list")
     @Transactional
     public List<UserDTO> getFriends(Authentication auth) {
-        User me = userRepo.findByUsername(auth.getName()).orElseThrow();
+        User me = userRepo.findWithRelationsByUsername(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return me.getFriends()
                 .stream()
-                .map(UserDTO::new)
+                .map(user -> new UserDTO(user, me))
+
                 .collect(Collectors.toList());
     }
 }

@@ -3,6 +3,7 @@ package com.skillexchange.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -18,11 +19,13 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String username;
 
+    @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -40,9 +43,19 @@ public class User {
 
     @Builder.Default
     private Integer ratingSum = 0;
+  
+
 
     @Builder.Default
     private boolean isActive = true;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Builder.Default
+    private Date createdAt = new Date();
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Builder.Default
+    private Date updatedAt = new Date();
 
     // ✅ Friends - bidirectional
     @ManyToMany
@@ -53,7 +66,7 @@ public class User {
     )
     private Set<User> friends = new HashSet<>();
 
-    // ✅ Sent Requests - owns the relationship
+    // ✅ Sent Requests
     @ManyToMany
     @JoinTable(
         name = "friend_requests",
@@ -62,9 +75,13 @@ public class User {
     )
     private Set<User> sentRequests = new HashSet<>();
 
-    // ✅ Received Requests - inverse side
+    // ✅ Received Requests
     @ManyToMany(mappedBy = "sentRequests")
     private Set<User> receivedRequests = new HashSet<>();
+
+    // ✅ UserSkills (offered + needed)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserSkill> userSkills = new HashSet<>();
 
     // ✅ equals & hashCode based on ID only
     @Override

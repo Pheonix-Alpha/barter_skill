@@ -1,5 +1,6 @@
 package com.skillexchange.controller;
 
+import com.skillexchange.dto.ChatMessageDto;
 import com.skillexchange.model.ChatMessage;
 import com.skillexchange.model.User;
 import com.skillexchange.payload.SendMessageRequest;
@@ -29,25 +30,27 @@ public class ChatController {
 
     // ✅ Send a message using DTO
     @PostMapping("/send/{receiverId}")
-    public ChatMessage sendMessage(@PathVariable Long receiverId, @RequestBody SendMessageRequest request) {
-        User sender = getCurrentUser();
-        User receiver = userRepo.findById(receiverId).orElseThrow();
-        return chatService.sendMessage(sender, receiver, request.getMessage());
-    }
+public ChatMessageDto sendMessage(@PathVariable Long receiverId, @RequestBody SendMessageRequest request) {
+    User sender = getCurrentUser();
+    User receiver = userRepo.findById(receiverId).orElseThrow();
+    ChatMessage message = chatService.sendMessage(sender, receiver, request.getMessage());
+    return new ChatMessageDto(message);  // ✅ return safe DTO
+}
+
 
     // ✅ Get paginated chat history
-    @GetMapping("/with/{userId}")
-    public List<ChatMessage> getChatWithUser(
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(defaultValue = "0") int offset
-    ) {
-        User me = getCurrentUser();
-        User other = userRepo.findById(userId).orElseThrow();
+ @GetMapping("/with/{otherUserId}")
+public List<ChatMessageDto> getChatWithUser(@PathVariable Long otherUserId,
+                                            @RequestParam(defaultValue = "20") int limit,
+                                            @RequestParam(defaultValue = "0") int offset) {
+    User currentUser = getCurrentUser();
+   User otherUser = userRepo.findById(otherUserId).orElseThrow();
+List<ChatMessage> messages = chatService.getChatHistory(currentUser, otherUser, limit, offset);
 
-        // ✅ Correct placement of debug log
-        System.out.println("📨 Fetching chat for: " + me.getUsername() + " ↔️ " + other.getUsername());
 
-        return chatService.getChatHistory(me, other, limit, offset);
-    }
+    return messages.stream()
+                   .map(ChatMessageDto::new) // Convert each ChatMessage to DTO
+                   .toList(); // or .collect(Collectors.toList()) in older Java
+}
+
 }
