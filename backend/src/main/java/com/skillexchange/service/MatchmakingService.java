@@ -5,8 +5,11 @@ import com.skillexchange.model.User;
 import com.skillexchange.model.UserSkill;
 import com.skillexchange.repository.UserRepository;
 import com.skillexchange.repository.UserSkillRepository;
+
+import org.hibernate.Hibernate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,10 +25,15 @@ public class MatchmakingService {
         this.userRepo = userRepo;
     }
 
-    public User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepo.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-    }
+   @Transactional
+public User getCurrentUser() {
+    String username = SecurityContextHolder.getContext().getAuthentication().getName();
+   User user = userRepo.findWithRelationsByUsername(username)
+    .orElseThrow(() -> new RuntimeException("User not found"));
+
+
+    return user;
+}
 
     public List<User> findUsersOfferingSkill(Long skillId) {
         return userSkillRepo.findBySkillIdAndType(skillId, SkillType.OFFERED).stream()
@@ -72,14 +80,17 @@ public class MatchmakingService {
     }
 
     // New: Find users offering a skill by skill name
+     @Transactional
     public List<User> searchUsersOfferingSkill(String skillName) {
         return userRepo.findBySkillNameAndType(skillName, SkillType.OFFERED);
     }
 
     // New: Find users wanting a skill by skill name
+     @Transactional
     public List<User> searchUsersWantingSkill(String skillName) {
         return userRepo.findBySkillNameAndType(skillName, SkillType.WANTED);
     }
+     @Transactional
     public List<User> searchUsersBySkill(String skillName) {
     Set<User> combined = new HashSet<>();
     combined.addAll(searchUsersOfferingSkill(skillName));

@@ -18,10 +18,10 @@ const Sidebar = ({ shrink = false }) => {
 
   const navItems = [
     { icon: <LayoutDashboard />, href: "/dashboard", label: "Dashboard" },
+    { icon: <User />, href: "/profile", label: "Profile" }, 
     { icon: <Inbox />, href: "/inbox", label: "Inbox" },
     { icon: <BookOpen />, href: "/lessons", label: "Lessons" },
     { icon: <MessageSquare />, href: "/messages?userId=2", label: "Messages" },
-    { icon: <Users />, href: "/groups", label: "Groups" },
     { icon: <User />, href: "/friends", label: "Friends" },
   ];
 

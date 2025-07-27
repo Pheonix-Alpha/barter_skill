@@ -232,97 +232,155 @@ export default function DashboardPage() {
         {matches.length === 0 ? (
           <p className="text-gray-500">No matches found.</p>
         ) : (
-          <ul className="space-y-2">
-            {matches.map((user) => (
-              <li
-                key={user.id}
-                className="p-3 border rounded flex justify-between items-center"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 text-white font-bold">
-                    {user.username[0]?.toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{user.username}</p>
-                    <p className="text-sm text-gray-600">{user.email}</p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => sendFriendRequest(user.id)}
-                  className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+          <ul className="space-y-4">
+  {matches.map((user) => (
+    <li
+      key={user.id}
+      className="p-4 border rounded-lg shadow hover:shadow-md transition flex flex-col sm:flex-row justify-between items-start sm:items-center"
+    >
+      <div className="flex items-center gap-4 w-full sm:w-auto">
+        <div className="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-lg">
+          {user.username[0]?.toUpperCase()}
+        </div>
+        <div>
+          <p className="font-semibold text-base">{user.username}</p>
+          <p className="text-sm text-gray-600">{user.email}</p>
+          {user.skills?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {user.skills.map((s) => (
+                <span
+                  key={s.id}
+                  className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full"
                 >
-                  Send Request
-                </button>
-              </li>
-            ))}
-          </ul>
+                  {s.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+        <button
+          onClick={() => sendFriendRequest(user.id)}
+          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
+        >
+          Add Friend
+        </button>
+        <button
+          onClick={() => {
+            setTargetUserId(user.id.toString());
+            const skillMatch = user.skills?.find(
+              (s) => s.name.toLowerCase() === skill.toLowerCase()
+            );
+            if (skillMatch) {
+              setSkillId(skillMatch.id.toString());
+              createExchangeRequest();
+            } else {
+              alert("Skill ID not found for this user.");
+            }
+          }}
+          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm"
+        >
+          Request Exchange
+        </button>
+      </div>
+    </li>
+  ))}
+</ul>
+
         )}
       </div>
 
+     
       {/* Search Results Section */}
-      {searchResults.length > 0 && (
-        <div className="bg-white shadow p-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">Search Results</h2>
-          {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <ul className="space-y-2">
-              {searchResults.map((user) => (
-                <li
-                  key={user.id}
-                  className="p-3 border rounded flex justify-between items-center"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold">
-                      {user.username[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold">{user.username}</p>
-                      <p className="text-sm text-gray-600">{user.email}</p>
-                    </div>
-                  </div>
+{searchResults.length > 0 && (
+  <div className="bg-white shadow p-4 rounded">
+    <h2 className="text-lg font-semibold mb-4">Search Results</h2>
+    {loading ? (
+      <p>Loading...</p>
+    ) : (
+      <ul className="space-y-4">
+        {searchResults.map((user) => (
+          <li
+            key={user.id}
+            className="border rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm"
+          >
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
+                {user.username[0]?.toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold text-base">{user.username}</p>
+                <p className="text-sm text-gray-600">{user.email}</p>
+                {user.skills && user.skills.length > 0 && (
+                  <p className="text-sm mt-1 text-gray-700">
+                    <strong>Skills:</strong>{" "}
+                    {user.skills.map((s) => s.name).join(", ")}
+                  </p>
+                )}
+              </div>
+            </div>
 
-                  <button
-                    onClick={() => sendFriendRequest(user.id)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                  >
-                    Send Request
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+            <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+              <button
+                onClick={() => sendFriendRequest(user.id)}
+                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+              >
+                Add Friend
+              </button>
+              <button
+                onClick={() => {
+                  const matchedSkill = user.skills?.find(
+                    (s) => s.name.toLowerCase() === skill.toLowerCase()
+                  );
+                  if (!matchedSkill) {
+                    alert("Matching skill not found in user's skill list");
+                    return;
+                  }
+                  fetch("http://localhost:8080/api/exchange/request", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                      targetUserId: user.id,
+                      skillId: matchedSkill.id,
+                    }),
+                  })
+                    .then((res) => {
+                      if (!res.ok) throw new Error("Request failed");
+                      return res.json();
+                    })
+                    .then(() => {
+                      alert("Skill exchange request sent!");
+                      fetchExchangeRequests(token); // refresh requests
+                    })
+                    .catch((err) => {
+                      console.error(err);
+                      alert("Error sending request");
+                    });
+                }}
+                className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+              >
+                Request Exchange
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+)}
+
 
       {/* Skill Exchange Section */}
       <div className="bg-white shadow p-4 rounded">
         <h2 className="text-lg font-semibold mb-2">Skill Exchange Requests</h2>
 
-        {/* Create Request */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="Target User ID"
-            value={targetUserId}
-            onChange={(e) => setTargetUserId(e.target.value)}
-            className="px-3 py-2 border rounded flex-1"
-          />
-          <input
-            type="text"
-            placeholder="Skill ID"
-            value={skillId}
-            onChange={(e) => setSkillId(e.target.value)}
-            className="px-3 py-2 border rounded flex-1"
-          />
-          <button
-            onClick={createExchangeRequest}
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-          >
-            Send Request
-          </button>
-        </div>
+       
 
         {/* Requests List */}
         {loadingExchange ? (
