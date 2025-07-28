@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/chat/**").authenticated()
                 .requestMatchers("/api/messages/**").authenticated()
                 .requestMatchers("/api/exchange/**").authenticated()
+                .requestMatchers("/api/lessons/**").authenticated()
 
                
                 .requestMatchers("/api/friends/**").authenticated()

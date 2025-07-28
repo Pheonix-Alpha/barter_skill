@@ -58,26 +58,30 @@ export default function LoginPage() {
             <h2 className="text-4xl font-bold text-[#252525] mb-8 flex justify-center">Login</h2>
 
             {/* Email Input */}
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Enter your username"
-              className="w-full mb-5 px-5 py-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#1E88E5]"
-              required
-            />
+           <input
+  type="text"
+  name="username"
+  value={formData.username}
+  onChange={handleChange}
+  placeholder="Enter your username"
+  autoComplete="username"
+  className="w-full mb-5 px-5 py-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#1E88E5]"
+  required
+/>
+
 
             {/* Password Input */}
             <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              className="w-full mb-6 px-5 py-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#1E88E5]"
-              required
-            />
+  type="password"
+  name="password"
+  value={formData.password}
+  onChange={handleChange}
+  placeholder="Enter your password"
+  autoComplete="current-password"
+  className="w-full mb-6 px-5 py-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-[#1E88E5]"
+  required
+/>
+
 
             {/* Error Message */}
             {error && <p className="text-red-600 mb-4 text-sm text-center">{error}</p>}

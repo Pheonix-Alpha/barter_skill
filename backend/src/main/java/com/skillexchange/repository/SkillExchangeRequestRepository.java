@@ -28,4 +28,26 @@ public interface SkillExchangeRequestRepository extends JpaRepository<SkillExcha
            "WHERE r.requester.id = :userId OR r.target.id = :userId")
     List<SkillExchangeRequest> findByUserWithDetails(@Param("userId") Long userId);
 
+
+    @Query("SELECT r FROM SkillExchangeRequest r " +
+       "WHERE r.status = :status AND (r.requester.id = :userId OR r.target.id = :userId)")
+List<SkillExchangeRequest> findByStatusAndSenderOrReceiver(
+        @Param("status") RequestStatus status,
+        @Param("userId") Long userId);
+
+
+        @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+       "FROM SkillExchangeRequest r " +
+       "WHERE r.status = 'ACCEPTED' AND " +
+       "((r.requester.id = :user1 AND r.target.id = :user2) OR " +
+       "(r.requester.id = :user2 AND r.target.id = :user1)) AND " +
+       "r.skill.id = :skillId")
+boolean existsByParticipantsAndSkillAndAcceptedStatus(
+        @Param("user1") Long user1,
+        @Param("user2") Long user2,
+        @Param("skillId") Long skillId);
+
+
+        
+
 }
