@@ -3,454 +3,235 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Simple JWT decode helper to get payload without extra libs
-function parseJwt(token) {
-  try {
-    return JSON.parse(atob(token.split(".")[1]));
-  } catch (e) {
-    return null;
-  }
-}
-
 export default function DashboardPage() {
-  const router = useRouter();
-  const [token, setToken] = useState("");
-  const [currentUserId, setCurrentUserId] = useState(null);
-
   const [skill, setSkill] = useState("");
-  const [type, setType] = useState("offering"); // "offering" or "wanting"
-
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-
+  const [type, setType] = useState("offering");
+  const [results, setResults] = useState([]);
   const [matches, setMatches] = useState([]);
-
-  // Skill Exchange states
-  const [exchangeRequests, setExchangeRequests] = useState([]);
-  const [loadingExchange, setLoadingExchange] = useState(false);
-  const [targetUserId, setTargetUserId] = useState("");
-  const [skillId, setSkillId] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
-    const localToken = localStorage.getItem("token");
-    if (!localToken) {
+    const token = localStorage.getItem("token");
+    if (!token) {
       router.push("/login");
-    } else {
-      setToken(localToken);
-
-      // Decode JWT to get user id
-      const payload = parseJwt(localToken);
-      if (payload && payload.id) {
-        setCurrentUserId(payload.id);
-      }
-
-      fetchMatches(localToken);
-      fetchExchangeRequests(localToken);
-    }
-  }, [router]);
-
-  // Fetch matchmaking suggested matches
-  const fetchMatches = async (token) => {
-    try {
-      const res = await fetch("http://localhost:8080/api/match/matches", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      });
-
-      if (!res.ok) throw new Error("Failed to fetch matches");
-
-      const data = await res.json();
-      setMatches(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Search users by skill
-  const handleSearch = async () => {
-    if (!skill.trim()) {
-      setSearchResults([]);
       return;
     }
 
-    setLoading(true);
+    fetch("http://localhost:8080/api/match/matches", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch matches");
+        return res.json();
+      })
+      .then((data) => setMatches(data))
+      .catch((err) => console.error(err));
+  }, [router]);
+
+  const handleSearch = async () => {
+    const token = localStorage.getItem("token");
+    if (!skill || !token) return;
+
+    const endpoint = `http://localhost:8080/api/match/${type}?skill=${encodeURIComponent(
+      skill
+    )}`;
+
     try {
-      const res = await fetch(
-        `http://localhost:8080/api/match/${type}?skill=${skill}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        }
-      );
+      const res = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!res.ok) throw new Error("Search failed");
 
       const data = await res.json();
-      setSearchResults(data);
+      setResults(data);
     } catch (err) {
-      console.error("Search failed", err);
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
 
-  // Send friend request (existing)
-  const sendFriendRequest = async (id) => {
-    const res = await fetch(`http://localhost:8080/api/friends/request/${id}`, {
+ const handleSendRequest = async (receiverId, offeredSkillId, type) => {
+  const token = localStorage.getItem("token");
+
+  // TODO: Replace this with a real selection from the logged-in user's own wanted skills
+  const wantedSkillId = 1;
+
+  try {
+    const res = await fetch("http://localhost:8080/api/exchange/request", {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      credentials: "include",
+      body: JSON.stringify({
+        targetUserId: receiverId,
+        offeredSkillId,
+        wantedSkillId,
+        type,
+      }),
     });
 
-    const text = await res.text();
-    alert(text);
-  };
+    if (!res.ok) throw new Error("Request failed");
 
-  // Fetch Skill Exchange requests (sent and received)
-  const fetchExchangeRequests = async (token) => {
-    setLoadingExchange(true);
-    try {
-      const res = await fetch("http://localhost:8080/api/exchange/my-requests", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      });
+    alert("Skill exchange request sent!");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send request.");
+  }
+};
 
-      if (!res.ok) throw new Error("Failed to fetch skill exchange requests");
-
-      const data = await res.json();
-      setExchangeRequests(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingExchange(false);
-    }
-  };
-
-  // Create new Skill Exchange request
-  const createExchangeRequest = async () => {
-    if (!targetUserId.trim() || !skillId.trim()) {
-      alert("Please enter target user ID and skill ID");
-      return;
-    }
-
-    try {
-      const res = await fetch("http://localhost:8080/api/exchange/request", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          targetUserId: parseInt(targetUserId),
-          skillId: parseInt(skillId),
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create skill exchange request");
-
-      const data = await res.json();
-      alert("Skill exchange request sent!");
-      setTargetUserId("");
-      setSkillId("");
-      fetchExchangeRequests(token);
-    } catch (err) {
-      console.error(err);
-      alert("Error sending request");
-    }
-  };
-
-  // Respond to skill exchange request
-  const respondToExchangeRequest = async (id, status) => {
-    try {
-      const res = await fetch(
-        `http://localhost:8080/api/exchange/respond/${id}?status=${status}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        }
-      );
-
-      if (!res.ok) throw new Error("Failed to respond to request");
-
-      const data = await res.json();
-      alert(`Request ${status.toLowerCase()}`);
-      fetchExchangeRequests(token);
-    } catch (err) {
-      console.error(err);
-      alert("Error responding to request");
-    }
-  };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      {/* Skill Search Section */}
-      <div className="bg-white shadow p-4 rounded">
-        <h2 className="text-lg font-semibold mb-2">Search Users by Skill</h2>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <input
-            type="text"
-            value={skill}
-            onChange={(e) => setSkill(e.target.value)}
-            placeholder="Enter skill name"
-            className="flex-1 px-4 py-2 border rounded"
-          />
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="px-4 py-2 border rounded"
-          >
-            <option value="offering">Offering</option>
-            <option value="wanting">Wanting</option>
-          </select>
-          <button
-            onClick={handleSearch}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Search
-          </button>
-        </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Skill Matchmaking</h1>
+
+      {/* 🔍 Search Section */}
+      <div className="flex gap-2 mb-8">
+        <input
+          type="text"
+          value={skill}
+          onChange={(e) => setSkill(e.target.value)}
+          placeholder="Enter a skill..."
+          className="border p-2 rounded w-full"
+        />
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="border p-2 rounded"
+        >
+          <option value="offering">Offering</option>
+          <option value="wanting">Wanting</option>
+        </select>
+        <button
+          onClick={handleSearch}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Search
+        </button>
       </div>
 
-      {/* Matchmaking Section */}
-      <div className="bg-white shadow p-4 rounded">
-        <h2 className="text-lg font-semibold mb-2">Suggested Matches</h2>
-        {matches.length === 0 ? (
-          <p className="text-gray-500">No matches found.</p>
-        ) : (
-          <ul className="space-y-4">
-  {matches.map((user) => (
-    <li
-      key={user.id}
-      className="p-4 border rounded-lg shadow hover:shadow-md transition flex flex-col sm:flex-row justify-between items-start sm:items-center"
-    >
-      <div className="flex items-center gap-4 w-full sm:w-auto">
-        <div className="w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-lg">
-          {user.username[0]?.toUpperCase()}
-        </div>
-        <div>
-          <p className="font-semibold text-base">{user.username}</p>
-          <p className="text-sm text-gray-600">{user.email}</p>
-          {user.skills?.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
-              {user.skills.map((s) => (
-                <span
-                  key={s.id}
-                  className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full"
-                >
-                  {s.name}
-                </span>
+    
+      {/* 🔎 Search Results */}
+<div className="mb-14">
+  <h2 className="text-xl font-semibold mb-3">Search Results</h2>
+  {results.length === 0 ? (
+    <p className="text-gray-500">No users found.</p>
+  ) : (
+    <ul className="space-y-6">
+      {results.map((user) => (
+        <li key={user.id} className="border p-4 rounded shadow-sm">
+          <div className="mb-2">
+            <strong className="text-lg">{user.username}</strong>
+            <div className="text-sm text-gray-600">{user.bio}</div>
+          </div>
+
+          {/* Offered Skills */}
+          <div className="mb-3">
+            <span className="font-medium">They Offer:</span>
+            <ul className="ml-4 mt-1">
+              {user.offeringSkills.map((skillName, index) => (
+                <li key={index} className="flex items-center justify-between mt-1">
+                  <span>{skillName}</span>
+                  <button
+                    onClick={() =>
+                      handleSendRequest(user.id, user.offeringSkillIds[index], "OFFERED")
+                    }
+                    className="ml-4 bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                  >
+                    Request
+                  </button>
+                </li>
               ))}
-            </div>
-          )}
-        </div>
-      </div>
+            </ul>
+          </div>
 
-      <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-        <button
-          onClick={() => sendFriendRequest(user.id)}
-          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-        >
-          Add Friend
-        </button>
-        <button
-          onClick={() => {
-            setTargetUserId(user.id.toString());
-            const skillMatch = user.skills?.find(
-              (s) => s.name.toLowerCase() === skill.toLowerCase()
-            );
-            if (skillMatch) {
-              setSkillId(skillMatch.id.toString());
-              createExchangeRequest();
-            } else {
-              alert("Skill ID not found for this user.");
-            }
-          }}
-          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 text-sm"
-        >
-          Request Exchange
-        </button>
-      </div>
-    </li>
-  ))}
-</ul>
+          {/* Wanted Skills */}
+          <div>
+            <span className="font-medium">They Want:</span>
+            <ul className="ml-4 mt-1">
+              {user.wantingSkills.map((skillName, index) => (
+                <li key={index} className="flex items-center justify-between mt-1">
+                  <span>{skillName}</span>
+                  <button
+                    onClick={() =>
+                      handleSendRequest(user.id, user.wantingSkillIds[index], "WANTED")
+                    }
+                    className="ml-4 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 text-sm"
+                  >
+                    Offer
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
 
-        )}
-      </div>
 
-     
-      {/* Search Results Section */}
-{searchResults.length > 0 && (
-  <div className="bg-white shadow p-4 rounded">
-    <h2 className="text-lg font-semibold mb-4">Search Results</h2>
-    {loading ? (
-      <p>Loading...</p>
-    ) : (
-      <ul className="space-y-4">
-        {searchResults.map((user) => (
-          <li
-            key={user.id}
-            className="border rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm"
-          >
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                {user.username[0]?.toUpperCase()}
-              </div>
-              <div>
-                <p className="font-semibold text-base">{user.username}</p>
-                <p className="text-sm text-gray-600">{user.email}</p>
-                {user.skills && user.skills.length > 0 && (
-                  <p className="text-sm mt-1 text-gray-700">
-                    <strong>Skills:</strong>{" "}
-                    {user.skills.map((s) => s.name).join(", ")}
-                  </p>
+      {/* 🤝 Suggested Matches */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Suggested Matches</h2>
+
+        {matches.length === 0 ? (
+          <p className="text-gray-500">No matches found yet.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {matches.map((user) => (
+              <div
+                key={user.id}
+                className="bg-white shadow-md rounded-2xl p-5 border border-gray-200 hover:shadow-lg transition"
+              >
+                <div className="mb-3">
+                  <h3 className="text-xl font-bold">{user.username}</h3>
+                  <p className="text-sm text-gray-600">{user.bio}</p>
+                </div>
+
+                <div className="text-sm mb-3">
+                  <div className="mb-1">
+                    <span className="font-medium text-gray-800">They offer:</span>{" "}
+                    <span className="text-gray-700">
+                      {user.offeringSkills.join(", ") || "None"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-800">They want:</span>{" "}
+                    <span className="text-gray-700">
+                      {user.wantingSkills.join(", ") || "None"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 🔁 Dropdown to send request for offered skills */}
+                {user.offeringSkills.length > 0 && user.offeringSkillIds && (
+                  <select
+                    className="w-full border px-2 py-2 rounded-xl text-sm"
+                    onChange={(e) => {
+                      const selectedSkillId = e.target.value;
+                      if (selectedSkillId) {
+                        handleSendRequest(user.id, Number(selectedSkillId), "OFFERED");
+                        e.target.selectedIndex = 0; // Reset dropdown
+                      }
+                    }}
+                  >
+                    <option value="">Request a skill...</option>
+                    {user.offeringSkills.map((skillName, index) => (
+                      <option key={index} value={user.offeringSkillIds[index]}>
+                        {skillName}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-              <button
-                onClick={() => sendFriendRequest(user.id)}
-                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-              >
-                Add Friend
-              </button>
-              <button
-                onClick={() => {
-                  const matchedSkill = user.skills?.find(
-                    (s) => s.name.toLowerCase() === skill.toLowerCase()
-                  );
-                  if (!matchedSkill) {
-                    alert("Matching skill not found in user's skill list");
-                    return;
-                  }
-                  fetch("http://localhost:8080/api/exchange/request", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({
-                      targetUserId: user.id,
-                      skillId: matchedSkill.id,
-                    }),
-                  })
-                    .then((res) => {
-                      if (!res.ok) throw new Error("Request failed");
-                      return res.json();
-                    })
-                    .then(() => {
-                      alert("Skill exchange request sent!");
-                      fetchExchangeRequests(token); // refresh requests
-                    })
-                    .catch((err) => {
-                      console.error(err);
-                      alert("Error sending request");
-                    });
-                }}
-                className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
-              >
-                Request Exchange
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-)}
-
-
-      {/* Skill Exchange Section */}
-      <div className="bg-white shadow p-4 rounded">
-        <h2 className="text-lg font-semibold mb-2">Skill Exchange Requests</h2>
-
-       
-
-        {/* Requests List */}
-        {loadingExchange ? (
-          <p>Loading...</p>
-        ) : exchangeRequests.length === 0 ? (
-          <p className="text-gray-500">No skill exchange requests found.</p>
-        ) : (
-         <ul className="space-y-2 max-h-72 overflow-auto">
-  {exchangeRequests.map((req) => (
-    <li
-      key={req.id}
-      className="p-3 border rounded flex flex-col sm:flex-row justify-between items-start sm:items-center"
-    >
-      <div>
-        <p>
-          <strong>Requester:</strong> {req.requesterUsername}
-        </p>
-        <p>
-          <strong>Target:</strong> {req.targetUsername}
-        </p>
-        <p>
-          <strong>Skill:</strong> {req.skillName}
-        </p>
-        <p>
-          <strong>Status:</strong>{" "}
-          <span
-            className={
-              req.status === "PENDING"
-                ? "text-yellow-600"
-                : req.status === "ACCEPTED"
-                ? "text-green-600"
-                : "text-red-600"
-            }
-          >
-            {req.status}
-          </span>
-        </p>
-      </div>
-
-      {/* Show respond buttons only if current user is the target and status is PENDING */}
-      {req.status === "PENDING" && req.targetUserId === currentUserId ? (
-        <div className="space-x-2 mt-2 sm:mt-0">
-          <button
-            onClick={() => respondToExchangeRequest(req.id, "ACCEPTED")}
-            className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-          >
-            Approve
-          </button>
-          <button
-            onClick={() => respondToExchangeRequest(req.id, "REJECTED")}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          >
-            Reject
-          </button>
-        </div>
-      ) : null}
-    </li>
-  ))}
-</ul>
-
+            ))}
+          </div>
         )}
-      </div>
-
-      {/* Upcoming Tasks */}
-      <div className="bg-white shadow p-4 rounded">
-        <h2 className="text-lg font-semibold mb-2">Upcoming Tasks</h2>
-        <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-          <li>📅 Java Interview on Thursday</li>
-          <li>📘 Lesson with Mentor on Friday</li>
-        </ul>
       </div>
     </div>
   );

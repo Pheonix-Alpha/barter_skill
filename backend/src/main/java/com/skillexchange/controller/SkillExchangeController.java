@@ -5,6 +5,9 @@ import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.dto.SkillResponseDto;
 import com.skillexchange.model.RequestStatus;
 import com.skillexchange.service.SkillExchangeService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +28,11 @@ public class SkillExchangeController {
      * Create a new skill exchange request from current user to target user.
      */
     @PostMapping("/request")
-    public ResponseEntity<SkillResponseDto> requestSkill(@RequestBody SkillRequestDto dto) {
-        SkillResponseDto createdRequest = exchangeService.createRequest(dto);
-        return ResponseEntity.ok(createdRequest);
-    }
+public ResponseEntity<SkillResponseDto> requestSkill(@Valid @RequestBody SkillRequestDto dto) {
+    System.out.println("📥 Incoming skill request: " + dto);
+    SkillResponseDto createdRequest = exchangeService.createRequest(dto);
+    return ResponseEntity.ok(createdRequest);
+}
 
     /**
      * Retrieve all skill exchange requests sent or received by current user.

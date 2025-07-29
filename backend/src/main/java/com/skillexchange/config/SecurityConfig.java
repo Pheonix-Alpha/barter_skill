@@ -45,8 +45,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/messages/**").authenticated()
                 .requestMatchers("/api/exchange/**").authenticated()
                 .requestMatchers("/api/lessons/**").authenticated()
+       
 
-               
+               .requestMatchers("/api/users/**").authenticated()
+
+
                 .requestMatchers("/api/friends/**").authenticated()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

@@ -19,7 +19,7 @@ export default function InboxPage() {
     }
 
     const payload = parseJwt(token);
-    setCurrentUserId(payload?.userId);
+    setCurrentUserId(Number(payload?.userId)); // ensure it's a number
 
     fetch("http://localhost:8080/api/exchange/my-requests", {
       headers: {
@@ -109,9 +109,24 @@ export default function InboxPage() {
       <h1 className="text-2xl font-semibold mb-6">Inbox - Skill Exchange Requests</h1>
       <ul>
         {requests.map((req) => {
-          const isTargetUser = currentUserId === req.target?.id;
-          const requesterName = req.requester?.username || "System";
-          const skillName = req.skill?.name || req.skillName || "Unknown Skill";
+          const isTargetUser = Number(currentUserId) === Number(req.target?.id);
+          const requesterName = req.requester?.username || "Unknown";
+          const targetName = req.target?.username || "Unknown";
+          const skill = req.skill?.name || "Unknown Skill";
+
+         const requestedSkill = req.wantedSkillName;
+const offeredSkill = req.offeredSkillName;
+
+            console.log("Request ID:", req.id);
+ console.log("Request ID:", req.id);
+console.log("Requester ID:", req.requester?.id);
+console.log("Target ID:", req.target?.id);
+console.log("Current User ID:", currentUserId);
+console.log("req.status:", req.status);
+console.log("Normalized Status:", req.status?.toUpperCase());
+console.log("Is Target User?", Number(currentUserId) === Number(req.target?.id));
+console.log("Should show buttons?", req.status?.toUpperCase() === "PENDING" && Number(currentUserId) === Number(req.target?.id));
+
 
           return (
             <li
@@ -121,15 +136,25 @@ export default function InboxPage() {
               aria-label={`Skill exchange request from ${requesterName}`}
             >
               <p className="mb-1">
-                Request received from <strong>{requesterName}</strong> to exchange skill{" "}
-                <strong>{skillName}</strong>
+                <strong>{requesterName}</strong> wants to{" "}
+                {req.type === "REQUEST" ? (
+                  <>
+                    learn <strong>{requestedSkill || skill}</strong> and is offering{" "}
+                    <strong>{offeredSkill || "a skill"}</strong>
+                  </>
+                ) : (
+                  <>
+                    teach <strong>{offeredSkill || skill}</strong> in exchange for{" "}
+                    <strong>{requestedSkill || "a skill"}</strong>
+                  </>
+                )}
               </p>
-              <p className="mb-2">
+              <p className="mb-2 text-gray-700">
                 Status: <em>{req.status}</em>
               </p>
 
-              {req.status === "PENDING" && isTargetUser && (
-                <div className="space-x-3">
+              {req.status?.toUpperCase() === "PENDING" && isTargetUser && (
+                <div className="space-x-3 mt-2">
                   <button
                     onClick={() => respondToRequest(req.id, "ACCEPTED")}
                     disabled={updatingId === req.id}

@@ -84,15 +84,19 @@ if (username != null && SecurityContextHolder.getContext().getAuthentication() =
             return;
         }
 
-        var userDetails = userDetailsService.loadUserByUsername(username);
-        System.out.println("✅ Loaded User from DB: " + userDetails.getUsername());
+     var userDetails = userDetailsService.loadUserByUsername(username);
+System.out.println("✅ Loaded User from DB: " + userDetails.getUsername());
+System.out.println("🛡 Authorities: " + userDetails.getAuthorities());
+
 
         boolean isValid = jwtService.isTokenValid(jwt, userDetails);
         System.out.println("🔍 JWT Token Valid? " + isValid);
 
+
       if (!isValid) {
     System.out.println("❌ JWT is invalid for user: " + username);
     filterChain.doFilter(request, response); // ✅ let it go through
+
     return;
 }
 

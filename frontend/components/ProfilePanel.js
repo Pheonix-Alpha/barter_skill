@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const ProfilePanel = () => {
   const [profile, setProfile] = useState(null);
+  const searchParams = useSearchParams();
+  const refreshKey = searchParams.get("updated");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -20,7 +24,7 @@ const ProfilePanel = () => {
     };
 
     fetchProfile();
-  }, []);
+  }, [refreshKey]);
 
   if (!profile) return <div>Loading profile...</div>;
 
@@ -28,13 +32,22 @@ const ProfilePanel = () => {
 
   return (
     <div className="p-6 bg-white shadow rounded-lg max-w-3xl mx-auto mt-6">
-      <h2 className="text-3xl font-bold mb-6">👤 Profile</h2>
+      {/* Top Section with Title and Edit Button */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-bold">👤 Profile</h2>
+        <button
+          onClick={() => router.push("/profile/edit")}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Edit Profile
+        </button>
+      </div>
 
-      {/* Top Section with Profile Pic and Info */}
+      {/* Profile Picture & Info */}
       <div className="flex items-center gap-6">
-        {profile.imageUrl ? (
+        {profile.profilePicture ? (
           <img
-            src={profile.imageUrl}
+            src={profile.profilePicture}
             alt="Profile"
             className="w-20 h-20 rounded-full object-cover"
           />
@@ -54,20 +67,20 @@ const ProfilePanel = () => {
         <h4 className="text-lg font-semibold mb-2">🛠️ Skills</h4>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="font-medium">Offered:</p>
+            <p className="font-medium">Offering:</p>
             <ul className="list-disc list-inside text-gray-700">
-              {profile.offeredSkills?.length ? (
-                profile.offeredSkills.map((skill, i) => <li key={i}>{skill}</li>)
+              {profile.offeringSkills?.length ? (
+                profile.offeringSkills.map((skill, i) => <li key={i}>{skill}</li>)
               ) : (
                 <li>None</li>
               )}
             </ul>
           </div>
           <div>
-            <p className="font-medium">Wanted:</p>
+            <p className="font-medium">Wanting:</p>
             <ul className="list-disc list-inside text-gray-700">
-              {profile.wantedSkills?.length ? (
-                profile.wantedSkills.map((skill, i) => <li key={i}>{skill}</li>)
+              {profile.wantingSkills?.length ? (
+                profile.wantingSkills.map((skill, i) => <li key={i}>{skill}</li>)
               ) : (
                 <li>None</li>
               )}

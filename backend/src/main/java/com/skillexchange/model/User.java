@@ -35,6 +35,11 @@ public class User {
     @Column(length = 500)
     private String bio;
 
+        // Add this field near bio or below email
+@Column(name = "profile_picture")
+private String profilePicture;
+
+
     @Builder.Default
     private Double averageRating = 0.0;
 
@@ -56,6 +61,11 @@ public class User {
     @Temporal(TemporalType.TIMESTAMP)
     @Builder.Default
     private Date updatedAt = new Date();
+
+
+
+
+
 
     // ✅ Friends - bidirectional
     @ManyToMany

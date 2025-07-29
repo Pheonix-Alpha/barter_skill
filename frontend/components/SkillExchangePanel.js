@@ -9,8 +9,9 @@ export default function SkillExchangePanel() {
   const [currentUserId, setCurrentUserId] = useState(null);
 
   const [targetUserId, setTargetUserId] = useState("");
-  const [skillId, setSkillId] = useState("");
-  const [type, setType] = useState("REQUEST");
+  const [wantedSkillId, setWantedSkillId] = useState("");
+  const [offeredSkillId, setOfferedSkillId] = useState("");
+  const [type, setType] = useState("WANTED"); // Changed from REQUEST to valid enum
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -49,10 +50,11 @@ export default function SkillExchangePanel() {
   };
 
   const createRequest = async () => {
-    if (!targetUserId || !skillId) {
-      alert("Please provide both Target User ID and Skill ID");
+    if (!targetUserId || !wantedSkillId || !offeredSkillId) {
+      alert("Please fill in all fields");
       return;
     }
+
     try {
       const res = await fetch("http://localhost:8080/api/exchange/request", {
         method: "POST",
@@ -63,7 +65,8 @@ export default function SkillExchangePanel() {
         credentials: "include",
         body: JSON.stringify({
           targetUserId: Number(targetUserId),
-          skillId: Number(skillId),
+          wantedSkillId: Number(wantedSkillId),
+          offeredSkillId: Number(offeredSkillId),
           type,
         }),
       });
@@ -92,7 +95,42 @@ export default function SkillExchangePanel() {
       console.error(err);
       alert("Error responding to request");
     }
-  };
+  }
+  const scheduleLesson = async (request) => {
+  const topic = prompt("Enter lesson topic:");
+  if (!topic) return;
+
+  const dateStr = prompt("Enter date and time (e.g., 2025-08-01T14:00):");
+  if (!dateStr || isNaN(Date.parse(dateStr))) {
+    alert("Invalid date format");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:8080/api/lessons", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        topic,
+        scheduledAt: dateStr,
+        learnerId: currentUserId === request.requester?.id ? request.requester.id : request.target.id,
+        teacherId: currentUserId === request.requester?.id ? request.target.id : request.requester.id,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Failed to schedule lesson");
+
+    alert("Lesson scheduled successfully!");
+  } catch (err) {
+    console.error(err);
+    alert("Error scheduling lesson");
+  }
+};
+
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-6 bg-white shadow rounded">
@@ -110,9 +148,16 @@ export default function SkillExchangePanel() {
         />
         <input
           type="number"
-          placeholder="Skill ID"
-          value={skillId}
-          onChange={(e) => setSkillId(e.target.value)}
+          placeholder="Wanted Skill ID"
+          value={wantedSkillId}
+          onChange={(e) => setWantedSkillId(e.target.value)}
+          className="border p-2 rounded w-full"
+        />
+        <input
+          type="number"
+          placeholder="Offered Skill ID"
+          value={offeredSkillId}
+          onChange={(e) => setOfferedSkillId(e.target.value)}
           className="border p-2 rounded w-full"
         />
         <select
@@ -120,8 +165,8 @@ export default function SkillExchangePanel() {
           onChange={(e) => setType(e.target.value)}
           className="border p-2 rounded w-full"
         >
-          <option value="REQUEST">Request</option>
-          <option value="OFFER">Offer</option>
+          <option value="WANTED">Wanted</option>
+          <option value="OFFERED">Offered</option>
         </select>
         <button
           onClick={createRequest}
@@ -142,21 +187,30 @@ export default function SkillExchangePanel() {
           <ul className="space-y-3">
             {requests.map((req) => {
               const isTarget = currentUserId === req.target?.id;
-              const requesterName = req.requester?.username ?? "Unknown";
-              const targetName = req.target?.username ?? "Unknown";
-              const skillName = req.skill?.name ?? "Unknown";
 
               return (
                 <li key={req.id} className="border p-3 rounded flex flex-col gap-1">
                   <p>
-                    <strong>Requester:</strong> {requesterName} |{" "}
-                    <strong>Target:</strong> {targetName}
+                    <strong>Requester:</strong> {req.requester?.username ?? "Unknown"} |{" "}
+                    <strong>Target:</strong> {req.target?.username ?? "Unknown"}
                   </p>
                   <p>
-                    <strong>Skill:</strong> {skillName} |{" "}
+                    <strong>Offered:</strong> {req.offeredSkillName} |{" "}
+                    <strong>Wanted:</strong> {req.wantedSkillName}
+                  </p>
+                  <p>
                     <strong>Type:</strong> {req.type} |{" "}
                     <strong>Status:</strong> {req.status}
                   </p>
+                  {req.status === "ACCEPTED" && (
+  <button
+    onClick={() => scheduleLesson(req)}
+    className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 mt-2 w-fit"
+  >
+    Schedule Lesson
+  </button>
+)}
+
 
                   {req.status === "PENDING" && isTarget && (
                     <div className="flex gap-2 mt-2">

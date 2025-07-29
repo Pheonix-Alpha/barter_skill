@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import axios from "axios";
+=======
+import SkillExchangePanel from "@/components/SkillExchangePanel"; // Adjust path if needed
+>>>>>>> 29e3d73 (skillexchange wroking)
 
 const LessonPanel = () => {
   const [acceptedRequests, setAcceptedRequests] = useState([]);
@@ -29,6 +33,7 @@ const LessonPanel = () => {
   };
 
   useEffect(() => {
+<<<<<<< HEAD
     const fetchData = async () => {
       try {
         await axios.get("http://localhost:8080/api/users/me/profile", {
@@ -216,6 +221,68 @@ const LessonPanel = () => {
           </div>
         </div>
       )}
+=======
+      const token = localStorage.getItem("token");
+    fetch("http://localhost:8080/api/lessons", {
+      credentials: "include",
+       headers: {
+      Authorization: `Bearer ${token}`, // ✅ Add this
+    }, // ✅ Include cookies for Spring Security
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load lessons");
+        return res.json();
+      })
+      .then(setLessons)
+      .catch((err) => {
+        console.error("❌ Error fetching lessons:", err);
+        alert("Could not load lessons.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="p-6 space-y-10 max-w-4xl mx-auto">
+      {/* Skill Exchange Panel */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Skill Exchange</h2>
+        <SkillExchangePanel />
+      </section>
+
+      {/* Lessons List */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Your Scheduled Lessons</h2>
+
+        {loading ? (
+          <p>Loading...</p>
+        ) : lessons.length === 0 ? (
+          <p>No lessons scheduled yet.</p>
+        ) : (
+          <ul className="space-y-4">
+            {lessons.map((lesson) => (
+              <li
+                key={lesson.id}
+                className="p-4 border rounded-lg shadow-sm bg-white"
+              >
+                <p>
+                  <strong>With:</strong>{" "}
+                  {lesson.otherUser?.username || "Unknown"}
+                </p>
+                <p>
+                  <strong>Topic:</strong> {lesson.topic}
+                </p>
+                <p>
+                  <strong>Scheduled At:</strong>{" "}
+                  {lesson.scheduledAt
+                    ? new Date(lesson.scheduledAt).toLocaleString()
+                    : "Not Scheduled"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+>>>>>>> 29e3d73 (skillexchange wroking)
     </div>
   );
 };

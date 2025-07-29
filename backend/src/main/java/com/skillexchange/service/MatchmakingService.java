@@ -6,7 +6,6 @@ import com.skillexchange.model.UserSkill;
 import com.skillexchange.repository.UserRepository;
 import com.skillexchange.repository.UserSkillRepository;
 
-import org.hibernate.Hibernate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,16 +24,20 @@ public class MatchmakingService {
         this.userRepo = userRepo;
     }
 
-   @Transactional
-public User getCurrentUser() {
-    String username = SecurityContextHolder.getContext().getAuthentication().getName();
-   User user = userRepo.findWithRelationsByUsername(username)
-    .orElseThrow(() -> new RuntimeException("User not found"));
+    /**
+     * Get the currently authenticated user from the security context.
+     */
+    @Transactional
+    public User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepo.findWithRelationsByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
 
-
-    return user;
-}
-
+    /**
+     * Return users who are offering a specific skill (by ID).
+     */
+    @Transactional
     public List<User> findUsersOfferingSkill(Long skillId) {
         return userSkillRepo.findBySkillIdAndType(skillId, SkillType.OFFERED).stream()
                 .map(UserSkill::getUser)
@@ -42,36 +45,50 @@ public User getCurrentUser() {
                 .collect(Collectors.toList());
     }
 
-    public List<User> findUsersWantingSkill(Long skillId) {
-        return userSkillRepo.findBySkillIdAndType(skillId, SkillType.WANTED).stream()
-                .map(UserSkill::getUser)
-                .distinct()
-                .collect(Collectors.toList());
-    }
+    /**
+     * Return users who want a specific skill (by ID).
+     */
+   @Transactional
+public List<User> findUsersWantingSkill(Long skillId) {
+    List<User> users = userSkillRepo.findBySkillIdAndType(skillId, SkillType.WANTED).stream()
+            .map(UserSkill::getUser)
+            .distinct()
+            .toList();
 
+
+    return users;
+}
+
+
+    /**
+     * Find mutual matches: users who offer what I want and want what I offer.
+     */
     public List<User> findSkillMatches() {
         User me = getCurrentUser();
 
-        List<Long> myOfferedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.OFFERED).stream()
+        Set<Long> myOfferedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.OFFERED).stream()
                 .map(us -> us.getSkill().getId())
-                .toList();
+                .collect(Collectors.toSet());
 
-        List<Long> myWantedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.WANTED).stream()
+        Set<Long> myWantedSkillIds = userSkillRepo.findByUserIdAndType(me.getId(), SkillType.WANTED).stream()
                 .map(us -> us.getSkill().getId())
-                .toList();
+                .collect(Collectors.toSet());
 
         Set<User> matches = new HashSet<>();
 
-        for (Long skillIWant : myWantedSkillIds) {
-            List<User> usersOfferingIt = userSkillRepo.findBySkillIdAndType(skillIWant, SkillType.OFFERED).stream()
-                    .map(UserSkill::getUser).toList();
+        for (Long wantedId : myWantedSkillIds) {
+            List<User> usersOffering = userSkillRepo.findBySkillIdAndType(wantedId, SkillType.OFFERED).stream()
+                    .map(UserSkill::getUser)
+                    .distinct()
+                    .toList();
 
-            for (User user : usersOfferingIt) {
-                List<Long> theirWantedSkills = userSkillRepo.findByUserIdAndType(user.getId(), SkillType.WANTED).stream()
-                        .map(us -> us.getSkill().getId()).toList();
+            for (User candidate : usersOffering) {
+                Set<Long> theirWantedSkills = userSkillRepo.findByUserIdAndType(candidate.getId(), SkillType.WANTED).stream()
+                        .map(us -> us.getSkill().getId())
+                        .collect(Collectors.toSet());
 
                 if (!Collections.disjoint(theirWantedSkills, myOfferedSkillIds)) {
-                    matches.add(user);
+                    matches.add(candidate);
                 }
             }
         }
@@ -79,23 +96,34 @@ public User getCurrentUser() {
         return new ArrayList<>(matches);
     }
 
-    // New: Find users offering a skill by skill name
-     @Transactional
+    /**
+     * Search users offering a skill by skill name.
+     */
+    @Transactional
     public List<User> searchUsersOfferingSkill(String skillName) {
         return userRepo.findBySkillNameAndType(skillName, SkillType.OFFERED);
     }
 
-    // New: Find users wanting a skill by skill name
-     @Transactional
-    public List<User> searchUsersWantingSkill(String skillName) {
-        return userRepo.findBySkillNameAndType(skillName, SkillType.WANTED);
-    }
-     @Transactional
-    public List<User> searchUsersBySkill(String skillName) {
-    Set<User> combined = new HashSet<>();
-    combined.addAll(searchUsersOfferingSkill(skillName));
-    combined.addAll(searchUsersWantingSkill(skillName));
-    return new ArrayList<>(combined);
+    /**
+     * Search users wanting a skill by skill name.
+     */
+    
+   @Transactional
+public List<User> searchUsersWantingSkill(String skillName) {
+    List<User> users = userRepo.findBySkillNameAndType(skillName, SkillType.WANTED);
+    users.forEach(user -> user.getUserSkills().size()); // Force initialization
+    return users;
 }
 
+
+    /**
+     * Combined search — return users either offering or wanting the given skill.
+     */
+    @Transactional
+    public List<User> searchUsersBySkill(String skillName) {
+        Set<User> combined = new HashSet<>();
+        combined.addAll(searchUsersOfferingSkill(skillName));
+        combined.addAll(searchUsersWantingSkill(skillName));
+        return new ArrayList<>(combined);
+    }
 }

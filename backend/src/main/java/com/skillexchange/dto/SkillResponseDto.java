@@ -1,5 +1,6 @@
 package com.skillexchange.dto;
 
+import com.skillexchange.model.RequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,9 +10,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SkillResponseDto {
     private Long id;
-    private String requesterUsername;
-    private String targetUsername;
-    private Long targetUserId;  
-    private String skillName;
-    private String status;
+    private String type;
+    private RequestStatus status;
+
+    private UserDTO requester;
+    private UserDTO target;
+
+    private String offeredSkillName;
+    private String wantedSkillName;
+
+     private Long currentUserId;
 }

@@ -18,11 +18,19 @@ public class SkillExchangeRequest {
     private User requester;
 
     @ManyToOne
-    private User target;
+    private User target; // ✅ <--- You need this field!
 
     @ManyToOne
-    private Skill skill;
+    @JoinColumn(name = "wanted_skill_id", nullable = true)
+       private Skill wantedSkill; // This is the "wanted" skill
+
+    @ManyToOne
+    @JoinColumn(name = "offered_skill_id", nullable = true)
+    private Skill offeredSkill;
 
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
+
+     @Enumerated(EnumType.STRING)
+    private SkillType type; 
 }

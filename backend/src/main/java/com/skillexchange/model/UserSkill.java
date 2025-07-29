@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,4 +23,18 @@ public class UserSkill {
 
     @Enumerated(EnumType.STRING)
     private SkillType type;
+
+    // ✅ equals and hashCode only use `id`
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserSkill)) return false;
+        UserSkill that = (UserSkill) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31; // simple constant hashCode to prevent accidental use of uninitialized ID
+    }
 }

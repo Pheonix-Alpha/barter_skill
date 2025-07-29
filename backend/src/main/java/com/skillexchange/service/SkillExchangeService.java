@@ -3,8 +3,10 @@ package com.skillexchange.service;
 import com.skillexchange.dto.AcceptedRequestDto;
 import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.dto.SkillResponseDto;
+import com.skillexchange.dto.UserDTO;
 import com.skillexchange.exception.ResourceNotFoundException;
 import com.skillexchange.model.*;
+import com.skillexchange.repository.LearningSessionRepository;
 import com.skillexchange.repository.SkillExchangeRequestRepository;
 import com.skillexchange.repository.SkillRepository;
 import com.skillexchange.repository.UserRepository;
@@ -12,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,52 +24,45 @@ public class SkillExchangeService {
     private final SkillExchangeRequestRepository requestRepo;
     private final SkillRepository skillRepo;
     private final UserRepository userRepo;
+    private final LearningSessionRepository sessionRepo;
 
-    public SkillExchangeService(
-            SkillExchangeRequestRepository requestRepo,
-            SkillRepository skillRepo,
-            UserRepository userRepo) {
+    public SkillExchangeService(SkillExchangeRequestRepository requestRepo,
+                                SkillRepository skillRepo,
+                                UserRepository userRepo,
+                                LearningSessionRepository sessionRepo) {
         this.requestRepo = requestRepo;
         this.skillRepo = skillRepo;
         this.userRepo = userRepo;
+        this.sessionRepo = sessionRepo;
     }
 
     private User getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("🔐 Auth object: " + auth);
-
         if (auth == null || auth.getName() == null) {
             throw new RuntimeException("No authenticated user found.");
         }
 
-        String username = auth.getName(); // Should be actual username from JWT
-        System.out.println("👤 Extracted username from SecurityContext: " + username);
-
-        return userRepo.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        return userRepo.findByUsername(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + auth.getName()));
     }
 
-    /**
-     * Create a new skill exchange request if not already pending.
-     */
     @Transactional
     public SkillResponseDto createRequest(SkillRequestDto dto) {
         User requester = getCurrentUser();
         User target = userRepo.findById(dto.getTargetUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Target user not found"));
-        Skill skill = skillRepo.findById(dto.getSkillId())
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
 
-        // Validate type
-        SkillType skillType;
-        try {
-            skillType = SkillType.valueOf(dto.getType().toUpperCase());
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("Invalid or missing skill type: " + dto.getType());
-        }
+        Skill offeredSkill = skillRepo.findById(dto.getOfferedSkillId())
+                .orElseThrow(() -> new ResourceNotFoundException("Offered skill not found"));
+        Skill wantedSkill = skillRepo.findById(dto.getWantedSkillId())
+                .orElseThrow(() -> new ResourceNotFoundException("Wanted skill not found"));
 
-        boolean exists = requestRepo.existsByRequesterAndTargetAndSkillAndStatus(
-                requester, target, skill, RequestStatus.PENDING);
+        SkillType type = SkillType.valueOf(dto.getType().toUpperCase());
+
+        boolean exists = requestRepo.existsByParticipantsAndSkillAndAcceptedStatus(
+                requester.getId(), target.getId(), 
+                type == SkillType.WANTED ? wantedSkill.getId() : offeredSkill.getId());
+
         if (exists) {
             throw new IllegalStateException("A pending request already exists for this skill and user.");
         }
@@ -74,23 +70,20 @@ public class SkillExchangeService {
         SkillExchangeRequest saved = requestRepo.save(SkillExchangeRequest.builder()
                 .requester(requester)
                 .target(target)
-                .skill(skill)
+                .wantedSkill(wantedSkill)
+                .offeredSkill(offeredSkill)
+                .type(type)
                 .status(RequestStatus.PENDING)
                 .build());
 
         return mapToDto(saved);
     }
 
-    /**
-     * Get all skill exchange requests (sent and received) of current user.
-     */
     @Transactional(readOnly = true)
     public List<SkillResponseDto> getMyRequests() {
         User currentUser = getCurrentUser();
-
         List<SkillExchangeRequest> sent = requestRepo.findByRequester(currentUser);
         List<SkillExchangeRequest> received = requestRepo.findByTarget(currentUser);
-
         sent.addAll(received);
 
         return sent.stream()
@@ -98,15 +91,11 @@ public class SkillExchangeService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get all accepted skill exchange requests (sent or received) of current user.
-     */
     @Transactional(readOnly = true)
     public List<SkillResponseDto> getAcceptedRequests() {
-       User currentUser = getCurrentUser();
-List<SkillExchangeRequest> acceptedRequests =
-    requestRepo.findByStatusAndSenderOrReceiver(RequestStatus.ACCEPTED, currentUser.getId());
-
+        User currentUser = getCurrentUser();
+        List<SkillExchangeRequest> acceptedRequests =
+                requestRepo.findByStatusAndSenderOrReceiver(RequestStatus.ACCEPTED, currentUser.getId());
 
         return acceptedRequests.stream()
                 .map(this::mapToDto)
@@ -114,53 +103,68 @@ List<SkillExchangeRequest> acceptedRequests =
     }
 
     @Transactional(readOnly = true)
-public List<AcceptedRequestDto> getAcceptedSkillPartnersForCurrentUser() {
-    User currentUser = getCurrentUser();
-    List<SkillExchangeRequest> acceptedRequests =
-            requestRepo.findByStatusAndSenderOrReceiver(RequestStatus.ACCEPTED, currentUser.getId());
+    public List<AcceptedRequestDto> getAcceptedSkillPartnersForCurrentUser() {
+        User currentUser = getCurrentUser();
+        List<SkillExchangeRequest> acceptedRequests =
+                requestRepo.findByStatusAndSenderOrReceiver(RequestStatus.ACCEPTED, currentUser.getId());
 
-    return acceptedRequests.stream()
-            .map(req -> {
-                User partner = req.getRequester().equals(currentUser)
-                        ? req.getTarget()
-                        : req.getRequester();
+        return acceptedRequests.stream()
+                .map(req -> {
+                    User partner = req.getRequester().equals(currentUser)
+                            ? req.getTarget()
+                            : req.getRequester();
 
-                return new AcceptedRequestDto(
-                        partner.getId(),
-                        partner.getUsername(),
-                        req.getSkill().getId(),
-                        req.getSkill().getName()
-                );
-            })
-            .distinct()
-            .collect(Collectors.toList());
-}
+                    Skill skill = req.getType() == SkillType.WANTED ? req.getWantedSkill() : req.getOfferedSkill();
 
+                    return new AcceptedRequestDto(
+                            partner.getId(),
+                            partner.getUsername(),
+                            skill.getId(),
+                            skill.getName()
+                    );
+                })
+                .distinct()
+                .collect(Collectors.toList());
+    }
 
-    /**
-     * Respond to a skill exchange request by updating its status.
-     */
     @Transactional
     public SkillResponseDto respondToRequest(Long requestId, RequestStatus newStatus) {
         SkillExchangeRequest request = requestRepo.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + requestId));
 
         request.setStatus(newStatus);
-
         return mapToDto(request);
     }
+private SkillResponseDto mapToDto(SkillExchangeRequest req) {
+    User currentUser = getCurrentUser(); // Needed for UserDTO logic
 
-    /**
-     * Helper to convert SkillExchangeRequest to DTO
-     */
-    private SkillResponseDto mapToDto(SkillExchangeRequest req) {
-        return new SkillResponseDto(
-                req.getId(),
-                req.getRequester().getUsername(),
-                req.getTarget().getUsername(),
-                req.getTarget().getId(),
-                req.getSkill().getName(),
-                req.getStatus().name()
-        );
+    return new SkillResponseDto(
+        req.getId(),
+        req.getType().name(),
+        req.getStatus(),
+        new UserDTO(req.getRequester(), currentUser),
+        new UserDTO(req.getTarget(), currentUser),
+        req.getOfferedSkill() != null ? req.getOfferedSkill().getName() : null,
+        req.getWantedSkill() != null ? req.getWantedSkill().getName() : null,
+        currentUser.getId()
+    );
+}
+
+
+    private void createLearningSessionFromRequest(SkillExchangeRequest request) {
+        LearningSession session = new LearningSession();
+
+        if (request.getType() == SkillType.WANTED) {
+            session.setLearner(request.getRequester());
+            session.setTeacher(request.getTarget());
+            session.setTopic(request.getWantedSkill().getName());
+        } else if (request.getType() == SkillType.OFFERED) {
+            session.setLearner(request.getTarget());
+            session.setTeacher(request.getRequester());
+            session.setTopic(request.getOfferedSkill().getName());
+        }
+
+        session.setScheduledAt(LocalDateTime.now().plusDays(1).withHour(17).withMinute(0).withSecond(0).withNano(0));
+        sessionRepo.save(session);
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Inbox,
@@ -15,19 +15,30 @@ import {
 
 const Sidebar = ({ shrink = false }) => {
   const pathname = usePathname();
+  const router = useRouter();
 
   const navItems = [
     { icon: <LayoutDashboard />, href: "/dashboard", label: "Dashboard" },
-    { icon: <User />, href: "/profile", label: "Profile" }, 
+    { icon: <User />, href: "/profile", label: "Profile" },
     { icon: <Inbox />, href: "/inbox", label: "Inbox" },
     { icon: <BookOpen />, href: "/lessons", label: "Lessons" },
     { icon: <MessageSquare />, href: "/messages?userId=2", label: "Messages" },
     { icon: <User />, href: "/friends", label: "Friends" },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/login");
+  };
+
   const bottomLinks = [
     { icon: <Settings />, href: "/settings", label: "Settings" },
-    { icon: <LogOut />, href: "/logout", label: "Logout", red: true },
+    {
+      icon: <LogOut />,
+      label: "Logout",
+      red: true,
+      onClick: handleLogout,
+    },
   ];
 
   return (
@@ -67,23 +78,37 @@ const Sidebar = ({ shrink = false }) => {
 
       {/* Bottom Links */}
       <div className="flex flex-col items-center gap-4">
-        {bottomLinks.map(({ icon, href, label, red }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`flex items-center gap-2 p-2 rounded hover:bg-blue-100 w-full justify-center ${
-              pathname === href
-                ? "bg-blue-200 text-blue-600"
-                : red
-                ? "text-red-500"
-                : "text-gray-500"
-            }`}
-            title={label}
-          >
-            {icon}
-            {!shrink && <span className="text-sm">{label}</span>}
-          </Link>
-        ))}
+        {bottomLinks.map(({ icon, href, label, red, onClick }) =>
+          onClick ? (
+            <button
+              key={label}
+              onClick={onClick}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-blue-100 w-full justify-center ${
+                red ? "text-red-500" : "text-gray-500"
+              }`}
+              title={label}
+            >
+              {icon}
+              {!shrink && <span className="text-sm">{label}</span>}
+            </button>
+          ) : (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2 p-2 rounded hover:bg-blue-100 w-full justify-center ${
+                pathname === href
+                  ? "bg-blue-200 text-blue-600"
+                  : red
+                  ? "text-red-500"
+                  : "text-gray-500"
+              }`}
+              title={label}
+            >
+              {icon}
+              {!shrink && <span className="text-sm">{label}</span>}
+            </Link>
+          )
+        )}
       </div>
     </aside>
   );

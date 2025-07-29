@@ -1,5 +1,6 @@
 package com.skillexchange.controller;
 
+
 import com.skillexchange.dto.LessonRequestDto;
 import com.skillexchange.dto.LessonResponseDto;
 import com.skillexchange.model.*;
@@ -15,12 +16,14 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/lessons")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class LessonController {
+
 
     @Autowired
     private LessonService lessonService;
@@ -90,7 +93,7 @@ public class LessonController {
         return ResponseEntity.ok(Map.of("allowed", allowed));
     }
 
-  @GetMapping("/accepted-requests")
+ @GetMapping("/accepted-requests")
 public List<Map<String, Object>> getAcceptedRequestsForScheduling() {
     String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
     User currentUser = userRepository.findByUsername(currentUsername)
@@ -99,7 +102,6 @@ public List<Map<String, Object>> getAcceptedRequestsForScheduling() {
     List<SkillExchangeRequest> acceptedRequests = skillExchangeRequestRepository
             .findByStatusAndSenderOrReceiver(RequestStatus.ACCEPTED, currentUser.getId());
 
-    // Key by (otherUserId, skillId) to remove duplicates
     Map<String, Map<String, Object>> uniqueRequests = new java.util.HashMap<>();
 
     for (SkillExchangeRequest req : acceptedRequests) {
@@ -107,17 +109,22 @@ public List<Map<String, Object>> getAcceptedRequestsForScheduling() {
         User target = req.getTarget();
         User otherUser = requester.getId().equals(currentUser.getId()) ? target : requester;
 
-        String uniqueKey = otherUser.getId() + "-" + req.getSkill().getId();
+        // Determine skill and skillId
+        Skill skill = (req.getType() == SkillType.WANTED) ? req.getWantedSkill() : req.getOfferedSkill();
+
+        if (skill == null) continue; // Skip if skill is not set
+
+        String uniqueKey = otherUser.getId() + "-" + skill.getId();
 
         if (!uniqueRequests.containsKey(uniqueKey)) {
             boolean lessonScheduled = lessonService.lessonAlreadyScheduled(
-                currentUser.getId(), otherUser.getId(), req.getSkill().getId()
+                    currentUser.getId(), otherUser.getId(), skill.getId()
             );
 
             Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", req.getId());
-            map.put("skillId", req.getSkill().getId());
-            map.put("skillName", req.getSkill().getName());
+            map.put("skillId", skill.getId());
+            map.put("skillName", skill.getName());
             map.put("requesterId", requester.getId());
             map.put("requesterUsername", requester.getUsername());
             map.put("targetId", target.getId());
