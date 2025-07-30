@@ -1,10 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
 import axios from "axios";
-=======
-import SkillExchangePanel from "@/components/SkillExchangePanel"; // Adjust path if needed
->>>>>>> 29e3d73 (skillexchange wroking)
 
 const LessonPanel = () => {
   const [acceptedRequests, setAcceptedRequests] = useState([]);
@@ -33,7 +29,6 @@ const LessonPanel = () => {
   };
 
   useEffect(() => {
-<<<<<<< HEAD
     const fetchData = async () => {
       try {
         await axios.get("http://localhost:8080/api/users/me/profile", {
@@ -47,7 +42,7 @@ const LessonPanel = () => {
       }
     };
 
-    fetchData();
+    if (token) fetchData();
   }, [token]);
 
   const handleScheduleClick = (request) => {
@@ -66,11 +61,10 @@ const LessonPanel = () => {
       return;
     }
 
-    const receiverId = selectedRequest.userId;
-    const skillId = selectedRequest.skillId;
+    const { userId: receiverId, skillId } = selectedRequest;
 
     if (!receiverId || !skillId) {
-      setError("receiverId or skillId is missing");
+      setError("Missing receiverId or skillId");
       return;
     }
 
@@ -94,24 +88,25 @@ const LessonPanel = () => {
         }
       );
 
+      // Update only that specific entry with lessonScheduled = true
       setAcceptedRequests((prev) =>
         prev.map((req) =>
-          req.userId === selectedRequest.userId && req.skillId === selectedRequest.skillId
+          req.userId === receiverId && req.skillId === skillId
             ? { ...req, lessonScheduled: true }
             : req
         )
       );
 
       setSuccessMsg("Lesson scheduled successfully!");
+
+      // Auto-close modal after a short delay
       setTimeout(() => {
         setShowModal(false);
         setSelectedRequest(null);
         setSuccessMsg("");
       }, 2000);
     } catch (err) {
-      setError(
-        "Failed to schedule: " + (err.response?.data?.message || err.message)
-      );
+      setError("Failed to schedule: " + (err.response?.data?.message || err.message));
     } finally {
       setSubmitting(false);
     }
@@ -121,20 +116,17 @@ const LessonPanel = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">
-        📌 Schedule Lessons for Accepted Requests
-      </h2>
+      <h2 className="text-2xl font-bold mb-6">📌 Schedule Lessons</h2>
 
       {acceptedRequests.length === 0 ? (
         <p className="text-gray-500">No accepted skill exchange requests found.</p>
       ) : (
         <div className="grid gap-4">
-          {acceptedRequests.map((req) => (
-  <div
-    key={req.id} // ✅ Now using unique SkillExchangeRequest ID
-    className="border rounded-lg p-4 shadow flex justify-between items-center"
-  >
-
+          {acceptedRequests.map((req, index) => (
+            <div
+              key={`${req.userId}-${req.skillId}-${index}`} // fallback composite key
+              className="border rounded-lg p-4 shadow flex justify-between items-center"
+            >
               <div>
                 <p className="text-lg font-semibold">{req.skillName}</p>
                 <p className="text-sm text-gray-600">
@@ -167,8 +159,7 @@ const LessonPanel = () => {
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-semibold mb-4">Schedule Lesson</h3>
             <p className="mb-2 text-sm text-gray-600">
-              For skill:{" "}
-              <span className="font-bold">{selectedRequest.skillName}</span>
+              Skill: <span className="font-bold">{selectedRequest.skillName}</span>
             </p>
 
             <div className="space-y-3">
@@ -209,9 +200,7 @@ const LessonPanel = () => {
                   onClick={handleScheduleSubmit}
                   disabled={submitting}
                   className={`px-4 py-2 text-white rounded ${
-                    submitting
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
+                    submitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                   }`}
                 >
                   {submitting ? "Scheduling..." : "Schedule"}
@@ -221,68 +210,6 @@ const LessonPanel = () => {
           </div>
         </div>
       )}
-=======
-      const token = localStorage.getItem("token");
-    fetch("http://localhost:8080/api/lessons", {
-      credentials: "include",
-       headers: {
-      Authorization: `Bearer ${token}`, // ✅ Add this
-    }, // ✅ Include cookies for Spring Security
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load lessons");
-        return res.json();
-      })
-      .then(setLessons)
-      .catch((err) => {
-        console.error("❌ Error fetching lessons:", err);
-        alert("Could not load lessons.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div className="p-6 space-y-10 max-w-4xl mx-auto">
-      {/* Skill Exchange Panel */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Skill Exchange</h2>
-        <SkillExchangePanel />
-      </section>
-
-      {/* Lessons List */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Your Scheduled Lessons</h2>
-
-        {loading ? (
-          <p>Loading...</p>
-        ) : lessons.length === 0 ? (
-          <p>No lessons scheduled yet.</p>
-        ) : (
-          <ul className="space-y-4">
-            {lessons.map((lesson) => (
-              <li
-                key={lesson.id}
-                className="p-4 border rounded-lg shadow-sm bg-white"
-              >
-                <p>
-                  <strong>With:</strong>{" "}
-                  {lesson.otherUser?.username || "Unknown"}
-                </p>
-                <p>
-                  <strong>Topic:</strong> {lesson.topic}
-                </p>
-                <p>
-                  <strong>Scheduled At:</strong>{" "}
-                  {lesson.scheduledAt
-                    ? new Date(lesson.scheduledAt).toLocaleString()
-                    : "Not Scheduled"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
->>>>>>> 29e3d73 (skillexchange wroking)
     </div>
   );
 };

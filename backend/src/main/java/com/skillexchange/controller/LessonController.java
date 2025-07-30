@@ -88,7 +88,7 @@ public class LessonController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         boolean allowed = skillExchangeRequestRepository
-                .existsByParticipantsAndSkillAndAcceptedStatus(currentUser.getId(), userId, skillId);
+        .existsAcceptedExchangeBetweenUsersAndSkill(currentUser.getId(), userId, skillId);
 
         return ResponseEntity.ok(Map.of("allowed", allowed));
     }

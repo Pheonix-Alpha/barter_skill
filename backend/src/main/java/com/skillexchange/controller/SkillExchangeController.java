@@ -9,6 +9,7 @@ import com.skillexchange.service.SkillExchangeService;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,6 +40,8 @@ public ResponseEntity<SkillResponseDto> requestSkill(@Valid @RequestBody SkillRe
      */
     @GetMapping("/my-requests")
     public ResponseEntity<List<SkillResponseDto>> getRequests() {
+         System.out.println("🔍 Authenticated principal: " + SecurityContextHolder.getContext().getAuthentication());
+    System.out.println("✅ User: " + SecurityContextHolder.getContext().getAuthentication().getName());
         List<SkillResponseDto> requests = exchangeService.getMyRequests();
         return ResponseEntity.ok(requests);
     }

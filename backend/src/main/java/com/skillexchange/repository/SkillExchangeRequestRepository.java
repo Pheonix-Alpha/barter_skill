@@ -16,14 +16,25 @@ public interface SkillExchangeRequestRepository extends JpaRepository<SkillExcha
     
    boolean existsByRequesterAndTargetAndWantedSkillAndStatus(User requester, User target, Skill wantedSkill, RequestStatus status);
 
-   @Query("SELECT r FROM SkillExchangeRequest r " +
+  @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
+       "FROM SkillExchangeRequest r " +
+       "WHERE r.status = 'ACCEPTED' AND " +
+       "((r.requester.id = :user1 AND r.target.id = :user2) OR " +
+       "(r.requester.id = :user2 AND r.target.id = :user1)) AND " +
+       "(r.wantedSkill.id = :skillId OR r.offeredSkill.id = :skillId)")
+boolean existsAcceptedExchangeBetweenUsersAndSkill(
+        @Param("user1") Long user1,
+        @Param("user2") Long user2,
+        @Param("skillId") Long skillId);
+
+        
+@Query("SELECT r FROM SkillExchangeRequest r " +
        "JOIN FETCH r.requester " +
        "JOIN FETCH r.target " +
        "LEFT JOIN FETCH r.wantedSkill " +
        "LEFT JOIN FETCH r.offeredSkill " +
        "WHERE r.requester.id = :userId OR r.target.id = :userId")
 List<SkillExchangeRequest> findByUserWithDetails(@Param("userId") Long userId);
-
 
 
     @Query("SELECT r FROM SkillExchangeRequest r " +
@@ -33,16 +44,6 @@ List<SkillExchangeRequest> findByStatusAndSenderOrReceiver(
         @Param("userId") Long userId);
 
 
-        @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END " +
-       "FROM SkillExchangeRequest r " +
-       "WHERE r.status = 'ACCEPTED' AND " +
-       "((r.requester.id = :user1 AND r.target.id = :user2) OR " +
-       "(r.requester.id = :user2 AND r.target.id = :user1)) AND " +
-       "r.skill.id = :skillId")
-boolean existsByParticipantsAndSkillAndAcceptedStatus(
-        @Param("user1") Long user1,
-        @Param("user2") Long user2,
-        @Param("skillId") Long skillId);
 
 
         

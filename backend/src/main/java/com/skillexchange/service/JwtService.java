@@ -23,9 +23,17 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+   public String extractUsername(String token) {
+    try {
+        String username = extractClaim(token, Claims::getSubject);
+        System.out.println("✅ Extracted username from token: " + username);
+        return username;
+    } catch (Exception e) {
+        System.err.println("❌ Failed to extract username: " + e.getMessage());
+        return null;
     }
+}
+
 
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
         Claims claims = Jwts.parserBuilder()

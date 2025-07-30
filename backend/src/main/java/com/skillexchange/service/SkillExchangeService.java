@@ -59,9 +59,10 @@ public class SkillExchangeService {
 
         SkillType type = SkillType.valueOf(dto.getType().toUpperCase());
 
-        boolean exists = requestRepo.existsByParticipantsAndSkillAndAcceptedStatus(
-                requester.getId(), target.getId(), 
-                type == SkillType.WANTED ? wantedSkill.getId() : offeredSkill.getId());
+       boolean exists = requestRepo.existsAcceptedExchangeBetweenUsersAndSkill(
+        requester.getId(), target.getId(), 
+        type == SkillType.WANTED ? wantedSkill.getId() : offeredSkill.getId());
+
 
         if (exists) {
             throw new IllegalStateException("A pending request already exists for this skill and user.");
@@ -138,9 +139,11 @@ public class SkillExchangeService {
 private SkillResponseDto mapToDto(SkillExchangeRequest req) {
     User currentUser = getCurrentUser(); // Needed for UserDTO logic
 
+    String type = req.getType() != null ? req.getType().name() : null;
+
     return new SkillResponseDto(
         req.getId(),
-        req.getType().name(),
+        type,
         req.getStatus(),
         new UserDTO(req.getRequester(), currentUser),
         new UserDTO(req.getTarget(), currentUser),
@@ -149,6 +152,7 @@ private SkillResponseDto mapToDto(SkillExchangeRequest req) {
         currentUser.getId()
     );
 }
+
 
 
     private void createLearningSessionFromRequest(SkillExchangeRequest request) {
