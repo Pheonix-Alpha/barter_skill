@@ -1,6 +1,7 @@
 package com.skillexchange.controller;
 
 import com.skillexchange.dto.AcceptedRequestDto;
+import com.skillexchange.dto.SentRequestDto;
 import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.dto.SkillResponseDto;
 import com.skillexchange.model.RequestStatus;
@@ -61,6 +62,11 @@ public ResponseEntity<SkillResponseDto> requestSkill(@Valid @RequestBody SkillRe
 public List<AcceptedRequestDto> getAcceptedSkillPartners() {
     return exchangeService.getAcceptedSkillPartnersForCurrentUser();
 }
+@GetMapping("/requests/sent")
+public ResponseEntity<List<SentRequestDto>> getSentRequests() {
+    return ResponseEntity.ok(exchangeService.getSentRequests());
+}
+
 
 
 

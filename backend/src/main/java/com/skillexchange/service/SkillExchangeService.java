@@ -1,6 +1,7 @@
 package com.skillexchange.service;
 
 import com.skillexchange.dto.AcceptedRequestDto;
+import com.skillexchange.dto.SentRequestDto;
 import com.skillexchange.dto.SkillRequestDto;
 import com.skillexchange.dto.SkillResponseDto;
 import com.skillexchange.dto.UserDTO;
@@ -152,6 +153,22 @@ private SkillResponseDto mapToDto(SkillExchangeRequest req) {
         currentUser.getId()
     );
 }
+@Transactional(readOnly = true)
+public List<SentRequestDto> getSentRequests() {
+    User currentUser = getCurrentUser();
+    List<SkillExchangeRequest> requests = requestRepo.findByRequester(currentUser);
+
+    return requests.stream()
+            .filter(req -> req.getStatus() == RequestStatus.PENDING)
+            .map(req -> {
+                Long skillId = req.getType() == SkillType.WANTED
+                        ? req.getWantedSkill().getId()
+                        : req.getOfferedSkill().getId();
+                return new SentRequestDto(req.getTarget().getId(), skillId, req.getType());
+            })
+            .collect(Collectors.toList());
+}
+
 
 
 

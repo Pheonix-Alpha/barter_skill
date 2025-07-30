@@ -1,6 +1,7 @@
 package com.skillexchange.controller;
 
 import com.skillexchange.dto.UserDTO;
+import com.skillexchange.model.SkillType;
 import com.skillexchange.model.User;
 import com.skillexchange.service.MatchmakingService;
 import org.springframework.web.bind.annotation.*;
@@ -22,23 +23,34 @@ public class MatchmakingController {
         this.userRepo = userRepo;
     }
 
-    @GetMapping("/offering")
-public List<UserDTO> usersOfferingSkill(@RequestParam String skill) {
+  @GetMapping("/offering")
+public List<UserDTO> searchByOffering(@RequestParam String skill) {
     User currentUser = matchmakingService.getCurrentUser();
-    return matchmakingService.searchUsersOfferingSkill(skill)
-            .stream()
-            .map(user -> new UserDTO(user, currentUser))
+
+    // Step 1: Search users who offer the skill
+    List<User> raw = userRepo.findBySkillNameAndType(skill, SkillType.OFFERED);
+
+    // Step 2: Fetch all their skills
+    List<User> usersWithSkills = userRepo.findAllWithSkills(raw);
+
+    // Step 3: Build DTOs with full data
+    return usersWithSkills.stream()
+            .map(u -> new UserDTO(u, currentUser))
             .toList();
 }
 
 @GetMapping("/wanting")
-public List<UserDTO> usersWantingSkill(@RequestParam String skill) {
+public List<UserDTO> searchByWanting(@RequestParam String skill) {
     User currentUser = matchmakingService.getCurrentUser();
-    return matchmakingService.searchUsersWantingSkill(skill)
-            .stream()
-            .map(user -> new UserDTO(user, currentUser))
+
+    List<User> raw = userRepo.findBySkillNameAndType(skill, SkillType.WANTED);
+    List<User> usersWithSkills = userRepo.findAllWithSkills(raw);
+
+    return usersWithSkills.stream()
+            .map(u -> new UserDTO(u, currentUser))
             .toList();
 }
+
 
 
  @GetMapping("/matches")
