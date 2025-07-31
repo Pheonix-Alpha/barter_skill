@@ -137,6 +137,8 @@ public class SkillExchangeService {
         request.setStatus(newStatus);
         return mapToDto(request);
     }
+
+    
 private SkillResponseDto mapToDto(SkillExchangeRequest req) {
     User currentUser = getCurrentUser(); // Needed for UserDTO logic
 
@@ -150,9 +152,13 @@ private SkillResponseDto mapToDto(SkillExchangeRequest req) {
         new UserDTO(req.getTarget(), currentUser),
         req.getOfferedSkill() != null ? req.getOfferedSkill().getName() : null,
         req.getWantedSkill() != null ? req.getWantedSkill().getName() : null,
-        currentUser.getId()
+        currentUser.getId(),
+        req.getCreatedAt(),
+        req.getUpdatedAt()
     );
 }
+
+
 @Transactional(readOnly = true)
 public List<SentRequestDto> getSentRequests() {
     User currentUser = getCurrentUser();

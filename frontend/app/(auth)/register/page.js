@@ -16,6 +16,7 @@ export default function RegistrationPage() {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -27,39 +28,39 @@ export default function RegistrationPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
-    console.log("Registering with:", formData);
-
-
+    setLoading(true);
     try {
-      const res = await axios.post("http://localhost:8080/api/auth/register", formData);
- // your backend endpoint
-      router.push("/login"); // redirect to login after successful registration
+      await axios.post("http://localhost:8080/api/auth/register", formData);
+      router.push("/login");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="h-screen bg-[#F2FAFA] flex items-center justify-center overflow-hidden">
-      <div className="w-[1080px] max-w-[1920px] h-[80vh] bg-white p-2 rounded-xl shadow-lg flex overflow-hidden">
-        {/* Left Box */}
-        <div className="w-[600px] h-full relative overflow-hidden">
+    <div className="min-h-screen bg-[#F2FAFA] flex items-center justify-center px-4">
+      <div className="w-full max-w-[1080px] h-auto md:h-[80vh] bg-white rounded-xl shadow-lg flex flex-col md:flex-row overflow-hidden">
+        {/* Left Image Box */}
+        <div className="w-full md:w-1/2 h-[200px] md:h-full relative">
           <img
             src="/images/login-image.png"
             alt="Registration Illustration"
             className="absolute top-0 left-0 w-full h-full object-cover z-0"
+            onError={(e) => (e.target.style.display = "none")}
           />
-          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-20">
-            <h1 className="text-5xl font-bold text-white">SkillExchange</h1>
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center z-10 bg-black/40 md:bg-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold text-white">SkillExchange</h1>
           </div>
         </div>
 
-        {/* Right Box */}
-        <div className="w-[500px] h-full flex items-center justify-center px-12 py-10">
+        {/* Right Form Box */}
+        <div className="w-full md:w-1/2 h-full flex items-center justify-center px-6 py-10 md:px-12 md:py-16">
           <form className="w-full max-w-md" onSubmit={handleRegister}>
-            <h2 className="text-4xl font-bold text-[#252525] mb-8 flex justify-center">Registration</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#252525] mb-8 text-center">Registration</h2>
 
-            {/* Name */}
+            {/* Username */}
             <input
               type="text"
               name="username"
@@ -92,15 +93,16 @@ export default function RegistrationPage() {
               required
             />
 
-            {/* Error */}
+            {/* Error Message */}
             {error && <p className="text-red-600 mb-4 text-sm text-center">{error}</p>}
 
-            {/* Submit */}
+            {/* Register Button */}
             <button
               type="submit"
+              disabled={loading}
               className="w-full bg-[#1E88E5] text-white py-4 rounded-lg text-lg font-semibold hover:bg-blue-600 transition"
             >
-              Register
+              {loading ? "Registering..." : "Register"}
             </button>
 
             {/* Link to Login */}

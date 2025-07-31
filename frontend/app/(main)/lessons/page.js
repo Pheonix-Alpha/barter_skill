@@ -6,6 +6,7 @@ const LessonPanel = () => {
   const [acceptedRequests, setAcceptedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -19,12 +20,15 @@ const LessonPanel = () => {
 
   const fetchAcceptedRequests = async () => {
     try {
+      setRefreshing(true);
       const res = await axios.get("http://localhost:8080/api/lessons/accepted-requests", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAcceptedRequests(res.data);
     } catch (err) {
       console.error("Failed to fetch accepted requests:", err);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -63,11 +67,6 @@ const LessonPanel = () => {
 
     const { userId: receiverId, skillId } = selectedRequest;
 
-    if (!receiverId || !skillId) {
-      setError("Missing receiverId or skillId");
-      return;
-    }
-
     try {
       setSubmitting(true);
 
@@ -88,23 +87,15 @@ const LessonPanel = () => {
         }
       );
 
-      // Update only that specific entry with lessonScheduled = true
-      setAcceptedRequests((prev) =>
-        prev.map((req) =>
-          req.userId === receiverId && req.skillId === skillId
-            ? { ...req, lessonScheduled: true }
-            : req
-        )
-      );
-
       setSuccessMsg("Lesson scheduled successfully!");
+      setShowModal(false);
+      setSelectedRequest(null);
 
-      // Auto-close modal after a short delay
-      setTimeout(() => {
-        setShowModal(false);
-        setSelectedRequest(null);
-        setSuccessMsg("");
-      }, 2000);
+      // Immediate refresh to mark lessonScheduled
+      await fetchAcceptedRequests();
+
+      // Auto-refresh after 10 seconds to update join link if added
+      setTimeout(fetchAcceptedRequests, 10000);
     } catch (err) {
       setError("Failed to schedule: " + (err.response?.data?.message || err.message));
     } finally {
@@ -116,7 +107,18 @@ const LessonPanel = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-6">📌 Schedule Lessons</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">📌 Schedule Lessons</h2>
+        <button
+          onClick={fetchAcceptedRequests}
+          disabled={refreshing}
+          className={`px-4 py-1 text-sm rounded ${
+            refreshing ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 text-white"
+          }`}
+        >
+          {refreshing ? "Refreshing..." : "🔁 Refresh"}
+        </button>
+      </div>
 
       {acceptedRequests.length === 0 ? (
         <p className="text-gray-500">No accepted skill exchange requests found.</p>
@@ -124,7 +126,7 @@ const LessonPanel = () => {
         <div className="grid gap-4">
           {acceptedRequests.map((req, index) => (
             <div
-              key={`${req.userId}-${req.skillId}-${index}`} // fallback composite key
+              key={`${req.userId}-${req.skillId}-${index}`}
               className="border rounded-lg p-4 shadow flex justify-between items-center"
             >
               <div>
@@ -135,12 +137,21 @@ const LessonPanel = () => {
               </div>
 
               {req.lessonScheduled ? (
-                <button
-                  className="bg-green-500 text-white px-4 py-2 rounded cursor-not-allowed"
-                  disabled
-                >
-                  ✅ Scheduled
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-green-600 font-medium">✅ Scheduled</span>
+                  {req.platformLink ? (
+                    <a
+                      href={req.platformLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm"
+                    >
+                      🎥 Join Zoom
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-sm italic">Waiting for link...</span>
+                  )}
+                </div>
               ) : (
                 <button
                   onClick={() => handleScheduleClick(req)}
@@ -154,6 +165,7 @@ const LessonPanel = () => {
         </div>
       )}
 
+      {/* Modal */}
       {showModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">

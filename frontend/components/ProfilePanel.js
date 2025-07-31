@@ -26,46 +26,46 @@ const ProfilePanel = () => {
     fetchProfile();
   }, [refreshKey]);
 
-  if (!profile) return <div>Loading profile...</div>;
+  if (!profile) return <div className="p-4">Loading profile...</div>;
 
   const getInitial = (name) => name?.charAt(0)?.toUpperCase();
 
   return (
-    <div className="p-6 bg-white shadow rounded-lg max-w-3xl mx-auto mt-6">
-      {/* Top Section with Title and Edit Button */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold">👤 Profile</h2>
+    <div className="p-4 sm:p-6 bg-white shadow rounded-lg w-full max-w-4xl mx-auto">
+      {/* Top Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">👤 Profile</h2>
         <button
           onClick={() => router.push("/profile/edit")}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm sm:text-base"
         >
           Edit Profile
         </button>
       </div>
 
-      {/* Profile Picture & Info */}
-      <div className="flex items-center gap-6">
+      {/* Profile Image + Info */}
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
         {profile.profilePicture ? (
           <img
             src={profile.profilePicture}
             alt="Profile"
-            className="w-20 h-20 rounded-full object-cover"
+            className="w-24 h-24 rounded-full object-cover"
           />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-blue-500 text-white flex items-center justify-center text-3xl font-bold">
+          <div className="w-24 h-24 rounded-full bg-blue-500 text-white flex items-center justify-center text-4xl font-bold">
             {getInitial(profile.username)}
           </div>
         )}
-        <div>
-          <h3 className="text-2xl font-semibold">{profile.username}</h3>
+        <div className="text-center sm:text-left">
+          <h3 className="text-xl font-semibold">{profile.username}</h3>
           <p className="text-gray-600">{profile.bio || "No bio provided."}</p>
         </div>
       </div>
 
-      {/* Skills Section */}
+      {/* Skills */}
       <div className="mt-6">
         <h4 className="text-lg font-semibold mb-2">🛠️ Skills</h4>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <p className="font-medium">Offering:</p>
             <ul className="list-disc list-inside text-gray-700">
@@ -89,10 +89,10 @@ const ProfilePanel = () => {
         </div>
       </div>
 
-      {/* Reviews Section */}
+      {/* Reviews Placeholder */}
       <div className="mt-6">
         <h4 className="text-lg font-semibold mb-2">⭐ Reviews</h4>
-        <p className="text-gray-500">No reviews yet. Coming soon!</p>
+        <p className="text-gray-500 text-sm">No reviews yet. Coming soon!</p>
       </div>
     </div>
   );

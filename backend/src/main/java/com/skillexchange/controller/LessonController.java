@@ -8,17 +8,21 @@ import com.skillexchange.repository.SkillExchangeRequestRepository;
 import com.skillexchange.repository.UserRepository;
 import com.skillexchange.service.LessonService;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
 
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/lessons")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
@@ -41,7 +45,10 @@ public class LessonController {
         User sender = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
-        System.out.println("🔐 Authenticated user: " + SecurityContextHolder.getContext().getAuthentication());
+      log.info("➡️ Incoming lesson request: {}", dto);
+log.info("🔐 Authenticated user: {}", SecurityContextHolder.getContext().getAuthentication());
+
+        
 
         try {
             Lesson lesson = lessonService.scheduleLesson(
@@ -131,7 +138,15 @@ public List<Map<String, Object>> getAcceptedRequestsForScheduling() {
             map.put("targetUsername", target.getUsername());
             map.put("userId", otherUser.getId());
             map.put("username", otherUser.getUsername());
-            map.put("lessonScheduled", lessonScheduled);
+           map.put("lessonScheduled", lessonScheduled);
+
+if (lessonScheduled) {
+    lessonService.getScheduledLesson(currentUser.getId(), otherUser.getId(), skill.getId())
+        .ifPresent(lesson -> {
+            map.put("platformLink", lesson.getPlatformLink());  // ✅ Zoom link
+        });
+}
+
 
             uniqueRequests.put(uniqueKey, map);
         }

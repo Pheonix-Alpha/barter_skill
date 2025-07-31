@@ -9,7 +9,17 @@ export default function DashboardPage() {
   const [results, setResults] = useState([]);
   const [matches, setMatches] = useState([]);
   const [disabledRequests, setDisabledRequests] = useState(new Set());
+  const [friendIds, setFriendIds] = useState(new Set());
+
   const router = useRouter();
+
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch (e) {
+      return null;
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -18,13 +28,26 @@ export default function DashboardPage() {
       return;
     }
 
-    // Restore disabled requests
+    const payload = parseJwt(token);
+    const currentUserId = Number(payload?.userId);
+
+    fetch("http://localhost:8080/api/friends/list", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const ids = new Set(data.map((u) => u.id));
+        setFriendIds(ids);
+      })
+      .catch((err) => console.error("Failed to fetch friends:", err));
+
     const stored = localStorage.getItem("disabledRequests");
     if (stored) {
       setDisabledRequests(new Set(JSON.parse(stored)));
     }
 
-    // Fetch suggested matches
     fetch("http://localhost:8080/api/match/matches", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -35,8 +58,7 @@ export default function DashboardPage() {
         return res.json();
       })
       .then((data) => {
-        console.log("🔁 Fetched Matches:", data);
-        setMatches(data);
+        setMatches(data.filter((user) => user.id !== currentUserId));
       })
       .catch((err) => console.error(err));
   }, [router]);
@@ -45,7 +67,12 @@ export default function DashboardPage() {
     const token = localStorage.getItem("token");
     if (!skill || !token) return;
 
-    const endpoint = `http://localhost:8080/api/match/${type}?skill=${encodeURIComponent(skill)}`;
+    const endpoint = `http://localhost:8080/api/match/${type}?skill=${encodeURIComponent(
+      skill
+    )}`;
+
+    const payload = parseJwt(token);
+    const currentUserId = Number(payload?.userId);
 
     try {
       const res = await fetch(endpoint, {
@@ -55,10 +82,41 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error("Search failed");
 
       const data = await res.json();
-      console.log("🔍 Search Results:", data);
-      setResults(data);
+      setResults(data.filter((user) => user.id !== currentUserId));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleSendFriendRequest = async (receiverId) => {
+    const token = localStorage.getItem("token");
+    const friendKey = `${receiverId}-FRIEND-FRIEND`;
+
+    if (disabledRequests.has(friendKey)) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:8080/api/friends/request/${receiverId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Friend request failed");
+
+      alert("Friend request sent!");
+
+      setDisabledRequests((prev) => {
+        const updated = new Set(prev).add(friendKey);
+        localStorage.setItem("disabledRequests", JSON.stringify([...updated]));
+        return updated;
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send friend request.");
     }
   };
 
@@ -99,150 +157,156 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Skill Matchmaking</h1>
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6 text-center sm:text-left">Skill Matchmaking</h1>
 
-      {/* 🔍 Search Section */}
-      <div className="flex gap-2 mb-8">
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-10">
         <input
           type="text"
           value={skill}
           onChange={(e) => setSkill(e.target.value)}
           placeholder="Enter a skill..."
-          className="border p-2 rounded w-full"
+          className="border p-2 rounded w-full sm:flex-1"
         />
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="border p-2 rounded"
+          className="border p-2 rounded w-full sm:w-auto"
         >
           <option value="offering">Offering</option>
           <option value="wanting">Wanting</option>
         </select>
         <button
           onClick={handleSearch}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto"
         >
           Search
         </button>
       </div>
 
-      {/* 🤝 Suggested Matches */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Suggested Matches</h2>
+      {/* Suggested Matches */}
+      <section className="mb-12">
+        <h2 className="text-xl font-semibold mb-4">Suggested Matches</h2>
         {matches.length === 0 ? (
           <p className="text-gray-500">No matches found yet.</p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {matches.map((user) => (
               <UserCard
                 key={user.id}
                 user={user}
                 disabledRequests={disabledRequests}
                 onRequest={handleSendRequest}
+                onFriendRequest={handleSendFriendRequest}
+                friendIds={friendIds}
               />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 🔎 Search Results */}
-      <div className="mb-14 mt-12">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Search Results</h2>
-
+      {/* Search Results */}
+      <section className="mb-20">
+        <h2 className="text-xl font-semibold mb-4">Search Results</h2>
         {results.length === 0 ? (
-          <p className="text-gray-500 text-center">No users found for this skill.</p>
+          <p className="text-gray-500">No users found for this skill.</p>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((user) => (
               <UserCard
                 key={user.id}
                 user={user}
                 disabledRequests={disabledRequests}
                 onRequest={handleSendRequest}
+                onFriendRequest={handleSendFriendRequest}
+                friendIds={friendIds}
               />
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
-// ✅ Extracted reusable card component
-function UserCard({ user, disabledRequests, onRequest }) {
+function UserCard({ user, disabledRequests, onRequest, onFriendRequest, friendIds }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
-      <h3 className="text-xl font-bold mb-2">{user.username}</h3>
+    <div className="relative bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition text-sm sm:text-base">
+      {/* Friend Button */}
+      {!friendIds?.has(user.id) &&
+        (() => {
+          const friendKey = `${user.id}-FRIEND-FRIEND`;
+          const isDisabled = disabledRequests.has(friendKey);
+          return (
+            <button
+              className={`absolute top-2 right-2 text-xl ${
+                isDisabled ? "opacity-30 cursor-not-allowed" : "hover:opacity-80"
+              }`}
+              disabled={isDisabled}
+              onClick={() => onFriendRequest(user.id)}
+              title={isDisabled ? "Friend request sent" : "Send friend request"}
+            >
+              🤝
+            </button>
+          );
+        })()}
 
-      <div className="mb-3 text-sm">
-        <p className="mb-1">
-          <span className="font-medium text-gray-800">They offer:</span>{" "}
-          <span className="text-gray-700">{user.offeringSkills.join(", ") || "None"}</span>
-        </p>
-        <p>
-          <span className="font-medium text-gray-800">They want:</span>{" "}
-          <span className="text-gray-700">{user.wantingSkills.join(", ") || "None"}</span>
-        </p>
+      <h3 className="text-lg font-bold mb-2">{user.username}</h3>
+
+      <p className="mb-2 text-gray-600">{user.email}</p>
+
+      <div className="mb-3">
+        <p className="font-medium text-gray-800 mb-1">🎯 They Offer:</p>
+        <ul className="space-y-1 ml-2">
+          {user.offeringSkills.map((skillName, i) => {
+            const skillId = user.offeringSkillIds[i];
+            const key = `${user.id}-${skillId}-OFFERED`;
+            return (
+              <li key={i} className="flex justify-between items-center">
+                <span>{skillName}</span>
+                <button
+                  disabled={disabledRequests.has(key)}
+                  onClick={() => onRequest(user.id, skillId, "OFFERED")}
+                  className={`ml-2 px-3 py-1 rounded-full text-sm ${
+                    disabledRequests.has(key)
+                      ? "bg-gray-300 text-white cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {disabledRequests.has(key) ? "Requested" : "Request"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      {/* Offering Skills (You can request these) */}
-      {user.offeringSkills?.length > 0 && (
-        <div className="mb-4">
-          <p className="text-gray-700 font-medium mb-1">🎯 They Offer:</p>
-          <ul className="space-y-1 ml-2">
-            {user.offeringSkills.map((skillName, i) => {
-              const skillId = user.offeringSkillIds[i];
-              const key = `${user.id}-${skillId}-OFFERED`;
-              return (
-                <li key={i} className="flex justify-between items-center text-sm">
-                  <span>{skillName}</span>
-                  <button
-                    disabled={disabledRequests.has(key)}
-                    onClick={() => onRequest(user.id, skillId, "OFFERED")}
-                    className={`ml-2 px-3 py-1 rounded-xl text-sm transition-all ${
-                      disabledRequests.has(key)
-                        ? "bg-gray-300 text-white cursor-not-allowed"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    {disabledRequests.has(key) ? "Requested" : "Request"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* Wanting Skills (You can offer these) */}
-      {user.wantingSkills?.length > 0 && (
-        <div>
-          <p className="text-gray-700 font-medium mb-1">💡 They Want:</p>
-          <ul className="space-y-1 ml-2">
-            {user.wantingSkills.map((skillName, i) => {
-              const skillId = user.wantingSkillIds[i];
-              const key = `${user.id}-${skillId}-WANTED`;
-              return (
-                <li key={i} className="flex justify-between items-center text-sm">
-                  <span>{skillName}</span>
-                  <button
-                    disabled={disabledRequests.has(key)}
-                    onClick={() => onRequest(user.id, skillId, "WANTED")}
-                    className={`ml-2 px-3 py-1 rounded-xl text-sm transition-all ${
-                      disabledRequests.has(key)
-                        ? "bg-gray-300 text-white cursor-not-allowed"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    {disabledRequests.has(key) ? "Offered" : "Offer"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      <div>
+        <p className="font-medium text-gray-800 mb-1">💡 They Want:</p>
+        <ul className="space-y-1 ml-2">
+          {user.wantingSkills.map((skillName, i) => {
+            const skillId = user.wantingSkillIds[i];
+            const key = `${user.id}-${skillId}-WANTED`;
+            return (
+              <li key={i} className="flex justify-between items-center">
+                <span>{skillName}</span>
+                <button
+                  disabled={disabledRequests.has(key)}
+                  onClick={() => onRequest(user.id, skillId, "WANTED")}
+                  className={`ml-2 px-3 py-1 rounded-full text-sm ${
+                    disabledRequests.has(key)
+                      ? "bg-gray-300 text-white cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700"
+                  }`}
+                >
+                  {disabledRequests.has(key) ? "Offered" : "Offer"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ export default function InboxPage() {
     }
 
     const payload = parseJwt(token);
-    setCurrentUserId(Number(payload?.userId)); // ensure it's a number
+    setCurrentUserId(Number(payload?.userId));
 
     fetch("http://localhost:8080/api/exchange/my-requests", {
       headers: {
@@ -53,20 +53,12 @@ export default function InboxPage() {
 
   const respondToRequest = (id, status) => {
     if (status === "REJECTED") {
-      const confirmDecline = window.confirm(
-        "Are you sure you want to reject this skill exchange request?"
-      );
+      const confirmDecline = window.confirm("Are you sure you want to reject this skill exchange request?");
       if (!confirmDecline) return;
     }
 
     setUpdatingId(id);
     const token = localStorage.getItem("token");
-
-    if (!token) {
-      alert("Authentication token not found. Please log in.");
-      setUpdatingId(null);
-      return;
-    }
 
     fetch(`http://localhost:8080/api/exchange/respond/${id}?status=${status}`, {
       method: "PUT",
@@ -91,51 +83,44 @@ export default function InboxPage() {
       .finally(() => setUpdatingId(null));
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="p-6 flex justify-center items-center">
+      <div className="p-6 flex justify-center items-center min-h-screen">
         <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-12 w-12"></div>
       </div>
     );
+  }
 
-  if (error)
+  if (error) {
     return <p className="p-6 text-red-600 font-semibold">{error}</p>;
+  }
 
-  if (requests.length === 0)
+  if (requests.length === 0) {
     return <p className="p-6 text-gray-600">No skill exchange requests found.</p>;
+  }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-6">Inbox - Skill Exchange Requests</h1>
-      <ul>
-        {requests.map((req) => {
+    <div className="px-4 py-6 max-w-4xl mx-auto w-full">
+      <h1 className="text-2xl font-bold mb-6 text-center sm:text-left">
+        Inbox - Skill Exchange Requests
+      </h1>
+      <ul className="space-y-4">
+        {[...requests].reverse().map((req) => {
           const isTargetUser = Number(currentUserId) === Number(req.target?.id);
           const requesterName = req.requester?.username || "Unknown";
           const targetName = req.target?.username || "Unknown";
           const skill = req.skill?.name || "Unknown Skill";
-
-         const requestedSkill = req.wantedSkillName;
-const offeredSkill = req.offeredSkillName;
-
-            console.log("Request ID:", req.id);
- console.log("Request ID:", req.id);
-console.log("Requester ID:", req.requester?.id);
-console.log("Target ID:", req.target?.id);
-console.log("Current User ID:", currentUserId);
-console.log("req.status:", req.status);
-console.log("Normalized Status:", req.status?.toUpperCase());
-console.log("Is Target User?", Number(currentUserId) === Number(req.target?.id));
-console.log("Should show buttons?", req.status?.toUpperCase() === "PENDING" && Number(currentUserId) === Number(req.target?.id));
-
+          const requestedSkill = req.wantedSkillName;
+          const offeredSkill = req.offeredSkillName;
 
           return (
             <li
               key={req.id}
-              className="mb-6 p-4 border rounded shadow-sm bg-white"
+              className="p-4 border rounded-lg shadow-sm bg-white"
               role="region"
               aria-label={`Skill exchange request from ${requesterName}`}
             >
-              <p className="mb-1">
+              <p className="text-base mb-1">
                 <strong>{requesterName}</strong> wants to{" "}
                 {req.type === "REQUEST" ? (
                   <>
@@ -149,16 +134,21 @@ console.log("Should show buttons?", req.status?.toUpperCase() === "PENDING" && N
                   </>
                 )}
               </p>
-              <p className="mb-2 text-gray-700">
-                Status: <em>{req.status}</em>
+
+              <p className="text-sm text-gray-500">
+                Requested on: {new Date(req.createdAt).toLocaleString()}
+              </p>
+
+              <p className="mt-2 text-gray-700">
+                Status: <em className="font-medium">{req.status}</em>
               </p>
 
               {req.status?.toUpperCase() === "PENDING" && isTargetUser && (
-                <div className="space-x-3 mt-2">
+                <div className="flex flex-wrap gap-3 mt-4">
                   <button
                     onClick={() => respondToRequest(req.id, "ACCEPTED")}
                     disabled={updatingId === req.id}
-                    className={`px-4 py-2 rounded text-white ${
+                    className={`px-4 py-2 text-sm rounded text-white ${
                       updatingId === req.id
                         ? "bg-green-300 cursor-not-allowed"
                         : "bg-green-600 hover:bg-green-700"
@@ -169,7 +159,7 @@ console.log("Should show buttons?", req.status?.toUpperCase() === "PENDING" && N
                   <button
                     onClick={() => respondToRequest(req.id, "REJECTED")}
                     disabled={updatingId === req.id}
-                    className={`px-4 py-2 rounded text-white ${
+                    className={`px-4 py-2 text-sm rounded text-white ${
                       updatingId === req.id
                         ? "bg-red-300 cursor-not-allowed"
                         : "bg-red-600 hover:bg-red-700"
@@ -184,17 +174,7 @@ console.log("Should show buttons?", req.status?.toUpperCase() === "PENDING" && N
         })}
       </ul>
 
-      <style jsx>{`
-        .loader {
-          border-top-color: #3498db;
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
+     
     </div>
   );
 }

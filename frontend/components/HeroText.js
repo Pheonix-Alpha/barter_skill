@@ -5,22 +5,22 @@ export default function HeroText() {
   const router = useRouter();
 
   return (
-    <div className="flex items-center gap-12 mt-8 w-full">
+    <div className="flex flex-col md:flex-row items-center gap-12 mt-8 w-full px-4 md:px-0">
       {/* Left Text Section */}
-      <div className="w-[634px]">
-        <h1 className="text-[65px] font-bold text-[#252525] leading-[1.1]">
-          are you looking for skill?
+      <div className="w-full md:max-w-[634px]">
+        <h1 className="text-3xl sm:text-4xl md:text-[65px] font-bold text-[#252525] leading-tight md:leading-[1.1]">
+          Are you looking for skill?
         </h1>
-        <p className="mt-[17px] text-[24px] text-gray-700 leading-[1.4]">
+        <p className="mt-4 text-lg sm:text-xl md:text-[24px] text-gray-700 leading-relaxed">
           Hire Great Freelancers, Fast.{" "}
           <span className="text-black font-medium">Spacelance</span> helps you
           hire elite freelancers at a moment's notice.
         </p>
 
         {/* Button + Search */}
-        <div className="mt-12 flex gap-4 items-center">
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full">
           <button
-            className="w-[250px] h-[55px] bg-[#1E88E5] text-white rounded-[10px] text-lg font-semibold hover:bg-blue-600 transition"
+            className="w-full sm:w-[200px] h-[50px] bg-[#1E88E5] text-white rounded-[10px] text-base font-semibold hover:bg-blue-600 transition"
             onClick={() => router.push("/find-skill")}
           >
             Find a Skill
@@ -29,17 +29,17 @@ export default function HeroText() {
           <input
             type="text"
             placeholder="Enter skill name..."
-            className="w-full h-[55px] px-6 rounded-[10px] border border-gray-300 shadow-sm text-lg focus:outline-none"
+            className="flex-1 h-[50px] px-4 rounded-[10px] border border-gray-300 shadow-sm text-base focus:outline-none"
           />
         </div>
       </div>
 
       {/* Right Image Section */}
-      <div className="flex-shrink-0">
+      <div className="w-full md:w-auto mt-6 md:mt-0">
         <img
-          src="/images/Hero-image.png" // replace with your actual image path
+          src="/images/Hero-image.png"
           alt="Skill Illustration"
-          className="w-[400px] h-auto object-contain"
+          className="w-full max-w-[400px] h-auto object-contain mx-auto"
         />
       </div>
     </div>

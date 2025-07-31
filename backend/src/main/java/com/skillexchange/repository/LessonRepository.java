@@ -7,18 +7,31 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findBySenderIdOrReceiverId(Long senderId, Long receiverId);
 
     boolean existsBySenderIdAndReceiverIdAndSkillIdAndScheduledTime(
-            Long senderId, Long receiverId, Long skillId, LocalDateTime scheduledTime);
+            Long senderId, Long receiverId, Long skillId, LocalDateTime scheduledTime
+    );
 
-    @Query("SELECT CASE WHEN COUNT(l) > 0 THEN true ELSE false END FROM Lesson l " +
-           "WHERE l.skill.id = :skillId AND " +
-           "((l.sender.id = :userA AND l.receiver.id = :userB) " +
-           "OR (l.sender.id = :userB AND l.receiver.id = :userA))")
+    List<Lesson> findByScheduledTimeBetweenAndPlatformLinkIsNull(LocalDateTime start, LocalDateTime end);
+
+    // ✅ FIXED: Correct way to query by sender/receiver + skill (bi-directional)
+    @Query("SELECT l FROM Lesson l WHERE " +
+           "((l.sender.id = :userA AND l.receiver.id = :userB) OR " +
+           "(l.sender.id = :userB AND l.receiver.id = :userA)) AND " +
+           "l.skill.id = :skillId")
+    Optional<Lesson> findByParticipantsAndSkill(@Param("userA") Long userAId,
+                                                @Param("userB") Long userBId,
+                                                @Param("skillId") Long skillId);
+
+    @Query("SELECT COUNT(l) > 0 FROM Lesson l WHERE " +
+           "((l.sender.id = :userA AND l.receiver.id = :userB) OR " +
+           "(l.sender.id = :userB AND l.receiver.id = :userA)) AND " +
+           "l.skill.id = :skillId")
     boolean existsByParticipantsAndSkill(@Param("userA") Long userAId,
                                          @Param("userB") Long userBId,
                                          @Param("skillId") Long skillId);
