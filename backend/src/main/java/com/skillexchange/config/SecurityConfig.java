@@ -38,7 +38,8 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/api/test/hello",
                     "/api/skills/**",
-                    "/ws/**"
+                    "/ws/**",
+                     "/error" 
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ handle preflight
                 .requestMatchers("/api/chat/**").authenticated()

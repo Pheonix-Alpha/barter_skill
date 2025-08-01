@@ -27,9 +27,22 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:8080/api/auth/login", formData);
-      localStorage.setItem("token", res.data.token);
-      router.push("/dashboard");
+     const res = await axios.post("http://localhost:8080/api/auth/login", formData);
+const { token, role } = res.data;
+
+localStorage.setItem("token", token);
+  localStorage.setItem("role", role);
+
+ console.log("Role:", res.data.role); // Must be "ADMIN"
+
+
+// Route based on role
+if (role === "ADMIN") {
+  router.push("/admin");
+} else {
+  router.push("/dashboard");
+}
+
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {

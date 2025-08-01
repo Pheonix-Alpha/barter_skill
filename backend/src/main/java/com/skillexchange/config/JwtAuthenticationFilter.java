@@ -2,11 +2,15 @@ package com.skillexchange.config;
 
 import com.skillexchange.service.CustomUserDetailsService;
 import com.skillexchange.service.JwtService;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -14,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
+
 import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
@@ -69,11 +75,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                userDetails,
-                null,
-                userDetails.getAuthorities()
-        );
+       Claims claims = Jwts.parserBuilder()
+        .setSigningKey(jwtService.getSignKey())
+        .build()
+        .parseClaimsJws(jwt)
+        .getBody();
+
+String role = claims.get("role", String.class);
+List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
+
+log.info("🔐 Extracted role from token: {}", role);
+log.info("🔐 Final GrantedAuthority: {}", authorities);
+UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+        userDetails,
+        null,
+        authorities
+);
+
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
         SecurityContextHolder.getContext().setAuthentication(authToken);

@@ -33,10 +33,8 @@ public UserDetails loadUserByUsername(String username) throws UsernameNotFoundEx
     System.out.println("🔐 Role: " + user.getRole());
     System.out.println("✅ Final Authority: ROLE_" + user.getRole().name());
 
-    return new CustomUserDetails(
-        user,
-        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-    );
+   return new CustomUserDetails(user);
+
 }
 
 }

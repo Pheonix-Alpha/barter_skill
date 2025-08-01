@@ -146,4 +146,29 @@ public class LessonService {
         log.debug("🔍 Getting scheduled lesson between {} and {} for skill {}", userAId, userBId, skillId);
         return lessonRepo.findByParticipantsAndSkill(userAId, userBId, skillId);
     }
+
+
+    /**
+ * ADMIN: Fetch all lessons in the system.
+ */
+public List<Lesson> getAllLessons() {
+    log.info("🛠️ Admin is fetching all lessons");
+    return lessonRepo.findAll();
+}
+
+/**
+ * ADMIN: Delete a lesson by ID.
+ */
+public boolean deleteLessonById(Long lessonId) {
+    log.info("🗑️ Admin is deleting lesson with ID: {}", lessonId);
+
+    if (!lessonRepo.existsById(lessonId)) {
+        log.warn("⚠️ Attempted to delete non-existent lesson ID: {}", lessonId);
+        return false;
+    }
+
+    lessonRepo.deleteById(lessonId);
+    return true;
+}
+
 }

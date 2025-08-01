@@ -45,7 +45,12 @@ List<SkillExchangeRequest> findByStatusAndSenderOrReceiver(
 
 
 
+@Query("SELECT r FROM SkillExchangeRequest r " +
+       "JOIN FETCH r.requester " +
+       "JOIN FETCH r.target " +
+       "LEFT JOIN FETCH r.wantedSkill " +
+       "LEFT JOIN FETCH r.offeredSkill")
+List<SkillExchangeRequest> findAllWithDetails(); 
 
-        
 
 }

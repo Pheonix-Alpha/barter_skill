@@ -51,4 +51,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
        "WHERE u IN :users")
 List<User> findAllWithSkills(@Param("users") List<User> users);
 
+@EntityGraph(attributePaths = {
+    "friends",
+    "sentRequests",
+    "receivedRequests",
+    "userSkills.skill"
+})
+@Query("SELECT u FROM User u")
+List<User> findAllWithRelations();
+
+
 }

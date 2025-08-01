@@ -22,4 +22,10 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findChatHistory(@Param("user1") User user1,
                                       @Param("user2") User user2,
                                       Pageable pageable);
+
+
+ void deleteBySenderId(Long senderId);
+
+    void deleteByReceiverId(Long receiverId);
+
 }

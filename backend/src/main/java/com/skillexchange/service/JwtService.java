@@ -19,9 +19,10 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
-    private Key getSignKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
-    }
+   public Key getSignKey() {
+    return Keys.hmacShaKeyFor(secret.getBytes());
+}
+
 
    public String extractUsername(String token) {
     try {
@@ -44,15 +45,17 @@ public class JwtService {
         return resolver.apply(claims);
     }
 
-    public String generateToken(String username , Long userId) {
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("userId", userId)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
-                .compact();
-    }
+    public String generateToken(String username, Long userId, String role) {
+    return Jwts.builder()
+            .setSubject(username)
+            .claim("userId", userId)
+            .claim("role", role)
+            .setIssuedAt(new Date(System.currentTimeMillis()))
+            .setExpiration(new Date(System.currentTimeMillis() + expiration))
+            .signWith(getSignKey(), SignatureAlgorithm.HS256)
+            .compact();
+}
+
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
