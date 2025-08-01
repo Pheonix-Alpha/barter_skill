@@ -62,4 +62,6 @@ public class AdminController {
                 ? ResponseEntity.ok(Map.of("message", "Request deleted"))
                 : ResponseEntity.status(404).body(Map.of("message", "Request not found"));
     }
+
+    //
 }
