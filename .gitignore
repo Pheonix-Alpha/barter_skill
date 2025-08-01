@@ -15,4 +15,7 @@ target/
 .DS_Store
 Thumbs.db
 /backend/target/
-src/main/resources/application.properties
+
+# Ignore Spring Boot config
+/backend/src/main/resources/application.properties
+
